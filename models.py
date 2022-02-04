@@ -21,7 +21,7 @@ class CharModel(nn.Module):
 
 class CharLSTMModel(nn.Module):
     def __init__(self):
-        super(CharModel, self).__init__()
+        super(CharLSTMModel, self).__init__()
         self._token_embed = nn.Embedding(256, 300, 255)
         self._ffn = nn.Linear(300, 2)
         self._lstm = nn.LSTM(300, 300 ,2)
@@ -35,7 +35,7 @@ class CharLSTMModel(nn.Module):
 
 class CharCNNModel(nn.Module):
     def __init__(self, args):
-        super(CharModel, self).__init__()
+        super(CharCNNModel, self).__init__()
         self._conv1 = nn.Sequential(
             nn.Conv1d(300, 256, kernel_size=7, stride=1),
             nn.ReLU(),
