@@ -59,14 +59,15 @@ def main():
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     if args.model_type == 'char_pool':
         model = CharModel(args)
     elif args.model_type == 'char_lstm':
         model = CharLSTMModel(args)
     elif args.model_type == 'char_cnn':
         model = CharCNNModel(args)
+
     criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     model.train()
     for epoch in range(10):
