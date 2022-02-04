@@ -46,16 +46,17 @@ def main():
     parser.add_argument('--loss', default='mse', choices=['mse','mae'])
     parser.add_argument('--lr', default=1e-4)
     parser.add_argument('--dropout', default=0.3)
-
+    parser.add_argument('--batch_size', default=512)
+    parser.add_argument('--data_ratio', default=0.1)
     args = parser.parse_args()
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
-    train_size = int(0.9 * len(tweet_dataset))
-    val_size = len(tweet_dataset) - train_size
+    train_size = int(0.9 * len(tweet_dataset) * args.data_ratio)
+    val_size = len(tweet_dataset) * args.data_ratio - train_size
     train_dataset, val_dataset = random_split(tweet_dataset, [train_size, val_size])
 
-    _train_iter = DataLoader(train_dataset, batch_size=32, collate_fn=lambda x: pad_chars(x))
-    _val_iter = DataLoader(val_dataset, batch_size=32, collate_fn=lambda x: pad_chars(x))
+    _train_iter = DataLoader(train_dataset, batch_size=args.batch_size, collate_fn=lambda x: pad_chars(x))
+    _val_iter = DataLoader(val_dataset, batch_size=args.batch_size, collate_fn=lambda x: pad_chars(x))
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
