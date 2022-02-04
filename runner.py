@@ -44,6 +44,7 @@ def main():
     parser.add_argument('--data_dir', default='./data', action='store')
     parser.add_argument('--model_type', default='char_pool', choices=['char_pool','char_lstm', 'char_cnn'])
     parser.add_argument('--loss', default='mse', choices=['mse','mae'])
+    parser.add_argument('--lr', default=1e-4)
     args = parser.parse_args()
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
@@ -57,7 +58,7 @@ def main():
     val_iter = tqdm.tqdm(_val_iter)
 
     model = CharModel()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     if args.model_type == 'char_pool':
         model = CharModel()
     elif args.model_type == 'char_lstm':
