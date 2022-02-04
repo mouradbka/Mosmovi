@@ -76,18 +76,18 @@ class CharCNNModel(nn.Module):
         self._fc3 = nn.Linear(1024, 2)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        x = self.conv6(x)
+        x = self._conv1(x)
+        x = self._conv2(x)
+        x = self._conv3(x)
+        x = self._conv4(x)
+        x = self._conv5(x)
+        x = self._conv6(x)
         # collapse
         x = x.view(x.size(0), -1)
         # linear layer
-        x = self.fc1(x)
+        x = self._fc1(x)
         # linear layer
-        x = self.fc2(x)
+        x = self._fc2(x)
         # final linear layer
-        x = self.fc3(x)
+        x = self._fc3(x)
         return x
