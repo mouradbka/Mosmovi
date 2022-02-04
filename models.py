@@ -23,12 +23,12 @@ class CharLSTMModel(nn.Module):
     def __init__(self, args):
         super(CharLSTMModel, self).__init__()
         self._token_embed = nn.Embedding(256, 300, 255)
-        self._ffn = nn.Linear(300, 2)
-        self._lstm = nn.LSTM(300, 300 ,2)
+        self._ffn = nn.Linear(600, 2)
+        self._lstm = nn.LSTM(300,300,2,bidirectional=True,batch_first=True)
 
     def forward(self, chars):
         embed = self._token_embed(chars)
-        context_embeds = self._lstm(embed)
+        context_embeds = self._lstm(embed)[0]
         pool = torch.mean(context_embeds, dim=1)
         return self._ffn(pool)
 
