@@ -55,7 +55,7 @@ def main():
     val_iter = tqdm.tqdm(_val_iter)
 
     model = CharModel()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
     criterion = nn.MSELoss()
 
     model.train()
