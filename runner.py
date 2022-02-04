@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 from torch import nn
 from loader import TweetDataset
 from torch.utils.data import DataLoader, random_split
-from models import CharModel
+from models import *
 
 logger = logging.getLogger()
 
@@ -42,6 +42,8 @@ def evaluate(batch, model, criterion):
 def main():
     parser = ArgumentParser()
     parser.add_argument('--data_dir', default='./data', action='store')
+    parser.add_argument('--model_type', default='char_pool', options=['char_pool','char_lstm', 'char_cnn'])
+    parser.add_argument('--loss', default='mse', options=['mse','mae'])
     args = parser.parse_args()
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
@@ -54,7 +56,13 @@ def main():
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
-    model = CharModel()
+    if args.model_type == 'char_pool':
+        model = CharModel()
+    elif args.model_type == 'char_lstm':
+        model = CharLSTMModel()
+    elif args.model_type == 'char_cnn':
+        model = CharCNNModel()
+
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     criterion = nn.MSELoss()
 
