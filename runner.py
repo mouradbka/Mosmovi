@@ -59,7 +59,6 @@ def main():
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
-    model = CharModel()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     if args.model_type == 'char_pool':
         model = CharModel(args)
