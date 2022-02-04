@@ -78,7 +78,7 @@ def main():
         with torch.no_grad():
             val_losses = []
             for batch in val_iter:
-                val_loss = evaluate(batch, model, optimizer)
+                val_loss = evaluate(batch, model, criterion)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 val_losses.append(val_loss.item())
 
