@@ -8,7 +8,7 @@ logger = logging.getLogger()
 
 
 class CharModel(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(CharModel, self).__init__()
         self._token_embed = nn.Embedding(256, 300, 255)
         self._ffn = nn.Linear(300, 2)
@@ -20,7 +20,7 @@ class CharModel(nn.Module):
 
 
 class CharLSTMModel(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(CharLSTMModel, self).__init__()
         self._token_embed = nn.Embedding(256, 300, 255)
         self._ffn = nn.Linear(300, 2)

@@ -45,6 +45,8 @@ def main():
     parser.add_argument('--model_type', default='char_pool', choices=['char_pool','char_lstm', 'char_cnn'])
     parser.add_argument('--loss', default='mse', choices=['mse','mae'])
     parser.add_argument('--lr', default=1e-4)
+    parser.add_argument('--dropout', default=0.3)
+
     args = parser.parse_args()
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
@@ -60,11 +62,11 @@ def main():
     model = CharModel()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     if args.model_type == 'char_pool':
-        model = CharModel()
+        model = CharModel(args)
     elif args.model_type == 'char_lstm':
-        model = CharLSTMModel()
+        model = CharLSTMModel(args)
     elif args.model_type == 'char_cnn':
-        model = CharCNNModel()
+        model = CharCNNModel(args)
     criterion = nn.MSELoss()
 
     model.train()
