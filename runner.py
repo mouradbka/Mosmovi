@@ -42,8 +42,8 @@ def evaluate(batch, model, criterion):
 def main():
     parser = ArgumentParser()
     parser.add_argument('--data_dir', default='./data', action='store')
-    parser.add_argument('--model_type', default='char_pool', options=['char_pool','char_lstm', 'char_cnn'])
-    parser.add_argument('--loss', default='mse', options=['mse','mae'])
+    parser.add_argument('--model_type', default='char_pool', choices=['char_pool','char_lstm', 'char_cnn'])
+    parser.add_argument('--loss', default='mse', choices=['mse','mae'])
     args = parser.parse_args()
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
