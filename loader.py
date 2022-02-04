@@ -15,8 +15,8 @@ class TweetDataset(Dataset):
 
         for fname in glob.glob(f"{data_dir}/*"):
             df = pd.read_csv(fname, sep=';', header=0)
-            self.tweet_tokens.extend([i.split(" ") for i in df.text.tolist()])
-            self.tweet_chars.extend([list(bytes(i, encoding='utf8')) for i in df.text.tolist()])
+            self.tweet_tokens.extend([str(i).split(" ") for i in df.text.tolist()])
+            self.tweet_chars.extend([list(bytes(str(i), encoding='utf8')) for i in df.text.tolist()])
             self.coords.extend([tuple(map(float, fname.rstrip('.csv').split('/')[-1].split('_')))] * len(df))
 
     def __len__(self: Dataset) -> int:
