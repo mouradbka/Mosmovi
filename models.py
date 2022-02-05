@@ -65,7 +65,7 @@ class CharCNNModel(nn.Module):
             nn.MaxPool1d(kernel_size=3, stride=3)
         )
         self._fc1 = nn.Sequential(
-            nn.Linear(8704, 1024),
+            nn.Linear(1792, 1024),
             nn.ReLU(),
             nn.Dropout(p=args.dropout)
         )
