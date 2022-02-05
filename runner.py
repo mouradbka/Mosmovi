@@ -55,7 +55,7 @@ def main():
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
     if args.subsample_ratio:
-        subsample_list = random.sample(range(len(tweet_dataset)), int(math.ceil(len(tweet_dataset) * args.subsample_ratio)))
+        subsample_list = random.sample(range(len(tweet_dataset)), int(math.ceil(len(tweet_dataset) * float(args.subsample_ratio))))
         tweet_dataset = torch.utils.data.Subset(tweet_dataset, subsample_list)
 
     train_size = int(0.9 * len(tweet_dataset))
