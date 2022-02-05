@@ -79,7 +79,7 @@ class CharCNNModel(nn.Module):
     def forward(self, x):
         x = self._token_embed(x)
         #transpose
-        x.permute(0,2,1)
+        x = x.permute(0,2,1)
         x = self._conv1(x)
         x = self._conv2(x)
         x = self._conv3(x)
