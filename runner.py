@@ -56,7 +56,7 @@ def main():
     train_size = int(0.9 * len(tweet_dataset) * args.data_ratio)
     val_size = len(tweet_dataset) * args.data_ratio - train_size
 
-    subsample_list = random.sample(range(len(tweet_dataset)), train_size + val_size)
+    subsample_list = random.sample(range(len(tweet_dataset)), int(train_size + val_size))
     subsample_tweet_dataset = torch.utils.data.Subset(tweet_dataset, subsample_list)
 
     train_dataset, val_dataset = random_split(subsample_tweet_dataset, [train_size, val_size])
