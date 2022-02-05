@@ -62,8 +62,8 @@ def main():
     val_size = len(tweet_dataset) - train_size
     train_dataset, val_dataset = random_split(tweet_dataset, [train_size, val_size])
 
-    _train_iter = DataLoader(train_dataset, batch_size=args.batch_size, collate_fn=lambda x: pad_chars(x))
-    _val_iter = DataLoader(val_dataset, batch_size=args.batch_size, collate_fn=lambda x: pad_chars(x))
+    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: pad_chars(x))
+    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: pad_chars(x))
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
