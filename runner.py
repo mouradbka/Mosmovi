@@ -14,6 +14,8 @@ import math
 
 logger = logging.getLogger()
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 def pad_chars(instance):
     chars, coords = zip(*instance)
@@ -24,10 +26,10 @@ def pad_chars(instance):
 
 def train(batch, model, optimizer, criterion):
     chars, coords = batch
-    pred = model(chars)
+    pred = model(chars.to(device))
 
     optimizer.zero_grad()
-    loss = criterion(pred, coords)
+    loss = criterion(pred, coords.to(device))
     loss.backward()
     optimizer.step()
 
@@ -36,8 +38,8 @@ def train(batch, model, optimizer, criterion):
 
 def evaluate(batch, model, criterion):
     chars, coords = batch
-    pred = model(chars)
-    loss = criterion(pred, coords)
+    pred = model(chars.to(device))
+    loss = criterion(pred, coords.to(device))
 
     return loss
 
@@ -74,8 +76,10 @@ def main():
     elif args.model_type == 'char_cnn':
         model = CharCNNModel(args)
 
+    model.to(device)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
 
     model.train()
     for epoch in range(10):
