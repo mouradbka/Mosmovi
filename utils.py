@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 EARTH_RADIUS = 6372.8
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def gc_distance(gold, pred):
     _degree_radian = lambda d: (d * math.pi) / 180
@@ -19,7 +19,7 @@ def gc_distance(gold, pred):
     n_gold = torch.stack([cos_gold[:, 0] * cos_gold[:, 1], cos_gold[:, 0] * sin_gold[:, 1], sin_gold[:, 0]], dim=1)
     n_pred = torch.stack([cos_pred[:, 0] * cos_pred[:, 1], cos_pred[:, 0] * sin_pred[:, 1], sin_pred[:, 0]], dim=1)
 
-    return torch.acos(torch.inner(n_gold, n_pred).diag()) * EARTH_RADIUS
+    return torch.acos(torch.inner(n_gold.to(device), n_pred.to(device)).diag()) * EARTH_RADIUS
 
 
 def pad_chars(instance):
