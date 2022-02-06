@@ -1,4 +1,6 @@
 import logging
+import wandb
+import utils
 import tqdm
 import torch
 import torch.nn.functional as F
@@ -14,35 +16,6 @@ import math
 
 logger = logging.getLogger()
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-def pad_chars(instance):
-    chars, coords = zip(*instance)
-    pad_length = max(map(len, chars))
-    padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) for i in chars]
-    return torch.stack(padded_chars), torch.stack(coords)
-
-
-def train(batch, model, optimizer, criterion):
-    chars, coords = batch
-    pred = model(chars.to(device))
-
-    optimizer.zero_grad()
-    loss = criterion(pred, coords.to(device))
-    loss.backward()
-    optimizer.step()
-
-    return loss
-
-
-def evaluate(batch, model, criterion):
-    chars, coords = batch
-    pred = model(chars.to(device))
-    loss = criterion(pred, coords.to(device))
-
-    return loss
-
 
 def main():
     parser = ArgumentParser()
@@ -55,6 +28,9 @@ def main():
     parser.add_argument('--subsample_ratio', default=None)
     args = parser.parse_args()
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    wandb.init(project='mosmovi_1', config=args)
+
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
     if args.subsample_ratio:
         subsample_list = random.sample(range(len(tweet_dataset)), int(math.ceil(len(tweet_dataset) * float(args.subsample_ratio))))
@@ -64,8 +40,8 @@ def main():
     val_size = len(tweet_dataset) - train_size
     train_dataset, val_dataset = random_split(tweet_dataset, [train_size, val_size])
 
-    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: pad_chars(x))
-    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: pad_chars(x))
+    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x))
+    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x))
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
@@ -79,22 +55,20 @@ def main():
     model.to(device)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
-
     model.train()
+
     for epoch in range(10):
         for batch in train_iter:
-            train_loss = train(batch, model, optimizer, criterion)
+            # pass
+            train_loss = utils.train(batch, model, optimizer, criterion, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
+            wandb.log({"train_loss": train_loss.item()})
 
         with torch.no_grad():
-            val_losses = []
             for batch in val_iter:
-                val_loss = evaluate(batch, model, criterion)
+                val_loss, val_distance = utils.evaluate(batch, model, criterion, device=device)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
-                val_losses.append(val_loss.item())
-
-            # logger.warning(f'validation loss: {v}')
+                wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
 
 
 if __name__ == '__main__':
