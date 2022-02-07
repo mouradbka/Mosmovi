@@ -48,3 +48,11 @@ def evaluate(batch, model, criterion, device):
     distance = gc_distance(coords, pred)
 
     return loss, distance
+
+
+def split_users(df, percentage_users = 0.10):
+    users_ids = df.author_id
+    users_ids = set(df.author_id)
+    n_samples = int(len(users_ids)*percentage_users)
+    val_users = random.sample(users_ids, n_samples)
+    return df.loc[df.author_id.isin(val_users)]
