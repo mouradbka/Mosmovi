@@ -31,10 +31,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     wandb.init(project='mosmovi_1', config=args)
 
-    if args.model_type == 'char_cnn':
-        tweet_dataset = CNNTweetDataset(data_dir=args.data_dir)
-    else:
-        tweet_dataset = TweetDataset(data_dir=args.data_dir)
+
+    tweet_dataset = TweetDataset(data_dir=args.data_dir)
     if args.subsample_ratio:
         subsample_list = random.sample(range(len(tweet_dataset)), int(math.ceil(len(tweet_dataset) * float(args.subsample_ratio))))
         tweet_dataset = torch.utils.data.Subset(tweet_dataset, subsample_list)

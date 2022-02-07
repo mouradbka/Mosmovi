@@ -62,10 +62,11 @@ class CharCNNModel(nn.Module):
         self._conv6 = nn.Sequential(
             nn.Conv1d(256, 256, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.MaxPool1d(kernel_size=3, stride=3)
+            nn.AdaptiveMaxPool1d(2048)
+            #nn.MaxPool1d(kernel_size=3, stride=3)
         )
         self._fc1 = nn.Sequential(
-            nn.Linear(8704, 1024),
+            nn.Linear(2048, 1024),
             nn.ReLU(),
             nn.Dropout(p=args.dropout)
         )
