@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from argparse import ArgumentParser
 from torch import nn
-from loader import TweetDataset, CNNTweetDataset
+from loader import TweetDataset
 from torch.utils.data import DataLoader, random_split
 from models import *
 

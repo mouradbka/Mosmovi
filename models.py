@@ -65,9 +65,9 @@ class CharCNNModel(nn.Module):
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
         )
-        self._fc1 = nn.Sequential(nn.Linear(256, 1024), nn.ReLU(), nn.Dropout(p=args.dropout))
-        self._fc2 = nn.Sequential(nn.Linear(1024, 1024), nn.ReLU(), nn.Dropout(p=args.dropout))
-        self._fc3 = nn.Linear(1024, 2)
+        self._fc1 = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(p=args.dropout))
+        self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=args.dropout))
+        self._fc3 = nn.Linear(128, 2)
 
     def forward(self, x):
         x = self._token_embed(x)
