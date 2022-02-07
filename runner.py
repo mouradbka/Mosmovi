@@ -29,7 +29,7 @@ def main():
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # wandb.init(project='mosmovi_1', config=args)
+    wandb.init(project='mosmovi_1', config=args)
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
     if args.subsample_ratio:
