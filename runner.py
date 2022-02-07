@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from argparse import ArgumentParser
 from torch import nn
-from loader import TweetDataset
+from loader import TweetDataset, CNNTweetDataset
 from torch.utils.data import DataLoader, random_split
 from models import *
 
@@ -24,14 +24,17 @@ def main():
     parser.add_argument('--loss', default='mse', choices=['mse','mae'])
     parser.add_argument('--lr', default=1e-4)
     parser.add_argument('--dropout', default=0.3)
-    parser.add_argument('--batch_size', default=512)
+    parser.add_argument('--batch_size', default=128)
     parser.add_argument('--subsample_ratio', default=None)
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     wandb.init(project='mosmovi_1', config=args)
 
-    tweet_dataset = TweetDataset(data_dir=args.data_dir)
+    if args.model_type == 'char_cnn':
+        tweet_dataset = CNNTweetDataset(data_dir=args.data_dir)
+    else:
+        tweet_dataset = TweetDataset(data_dir=args.data_dir)
     if args.subsample_ratio:
         subsample_list = random.sample(range(len(tweet_dataset)), int(math.ceil(len(tweet_dataset) * float(args.subsample_ratio))))
         tweet_dataset = torch.utils.data.Subset(tweet_dataset, subsample_list)
