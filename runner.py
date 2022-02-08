@@ -27,10 +27,12 @@ def main():
     parser.add_argument('--dropout', default=0.3)
     parser.add_argument('--batch_size', default=128)
     parser.add_argument('--subsample_ratio', default=None)
+    parser.add_argument('--run_name', default=None)
+
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    wandb.init(project='mosmovi_1', config=args)
+    wandb.init(project='mosmovi_1', config=args, name=args.run_name)
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
     if args.subsample_ratio:
