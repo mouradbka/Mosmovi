@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 import wandb
 import utils
 import tqdm
@@ -59,16 +60,18 @@ def main():
 
     for epoch in range(10):
         for batch in train_iter:
-            # pass
             train_loss = utils.train(batch, model, optimizer, criterion, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
 
         with torch.no_grad():
+            distances = []
             for batch in val_iter:
                 val_loss, val_distance = utils.evaluate(batch, model, criterion, device=device)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
+                distances.append(val_distance.tolist())
+            wandb.log({"val_mean": np.mean(distances), "val_median": np.median(distances)})
 
 
 if __name__ == '__main__':
