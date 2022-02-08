@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--model_type', default='char_pool', choices=['char_pool', 'char_lstm', 'char_cnn'])
     parser.add_argument('--loss', default='mse', choices=['mse', 'mae'])
     parser.add_argument('--lr', default=1e-4)
+    parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
     parser.add_argument('--dropout', default=0.3)
     parser.add_argument('--batch_size', default=128)
     parser.add_argument('--subsample_ratio', default=None)
@@ -56,7 +57,10 @@ def main():
 
     model.to(device)
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    if args.optimizer == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer == 'SGD':
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
     model.train()
 
     for epoch in range(10):
