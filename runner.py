@@ -21,7 +21,7 @@ logger = logging.getLogger()
 def main():
     parser = ArgumentParser()
     parser.add_argument('--data_dir', default='./data', action='store')
-    parser.add_argument('--model_type', default='char_pool', choices=['char_pool', 'char_lstm', 'char_cnn'])
+    parser.add_argument('--model_type', default='char_lstm', choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn'])
     parser.add_argument('--loss', default='mse', choices=['mse', 'mae'])
     parser.add_argument('--lr', default=1e-4)
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
@@ -55,6 +55,8 @@ def main():
         model = CharLSTMModel(args)
     elif args.model_type == 'char_cnn':
         model = CharCNNModel(args)
+    elif args.model_type == 'char_lstm_cnn':
+        model = CharLSTMCNNModel(args)
 
     model.to(device)
     criterion = nn.MSELoss()
