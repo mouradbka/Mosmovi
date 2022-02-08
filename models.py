@@ -90,7 +90,7 @@ class CharCNNModel(nn.Module):
 
 class CharLSTMCNNModel(nn.Module):
     def __init__(self, args):
-        super(CharCNNModel, self).__init__()
+        super(CharLSTMCNNModel, self).__init__()
         self._token_embed = nn.Embedding(256, 300, 255)
         self._lstm = nn.LSTM(300,300,2,bidirectional=True,batch_first=True)
 
