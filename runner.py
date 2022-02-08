@@ -76,7 +76,7 @@ def main():
                 val_loss, val_distance = utils.evaluate(batch, model, criterion, device=device)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
-                distances.append(val_distance.tolist())
+                distances.extend(val_distance.tolist())
             wandb.log({"val_mean": np.mean(distances), "val_median": np.median(distances)})
 
 
