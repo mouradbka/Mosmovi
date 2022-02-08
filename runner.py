@@ -59,9 +59,9 @@ def main():
     model.to(device)
     criterion = nn.MSELoss()
     if args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
     elif args.optimizer == 'SGD':
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+        optimizer = torch.optim.SGD(model.parameters(), lr=float(args.lr))
     model.train()
 
     for epoch in range(10):
