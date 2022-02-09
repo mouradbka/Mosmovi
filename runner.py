@@ -25,7 +25,7 @@ def main():
     parser.add_argument('--model_type', default='char_lstm', choices=['char_pool', 'char_lstm',
                                                                       'char_cnn', 'char_lstm_cnn',
                                                                       'char_transformer'])
-    parser.add_argument('--loss', default='mse', choices=['mse', 'mae'])
+    parser.add_argument('--loss', default='mse', choices=['mse', 'mae', 'smooth_l1'])
     parser.add_argument('--split_uids', action='store_true')
     parser.add_argument('--lr', default=1e-4)
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
@@ -75,6 +75,8 @@ def main():
         criterion = nn.MSELoss()
     elif args.loss == 'mae':
         criterion = nn.L1Loss()
+    elif args.loss == 'smooth_l1':
+        criterion = nn.SmoothL1Loss()
 
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
