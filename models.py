@@ -208,8 +208,8 @@ class TransformerModel(nn.Module):
                                             max_sequence_len),
                                n_layers, intermediate_layer_predictions)
 
-        self._token_embed = nn.Embedding(256, 300, 255)
-        self._ffn = nn.Linear(300, 2)
+        self._token_embed = nn.Embedding(256, 256, 255)
+        self._ffn = nn.Linear(256, 2)
 
         #self._token_embed = Embeddings(hidden_size, vocab_size)
 
