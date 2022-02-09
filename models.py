@@ -149,7 +149,7 @@ class CharLSTMCNNModel(nn.Module):
 class TransformerLayer(nn.Module):
     """Encoder is made up of self-attn and feed forward (defined below)"""
     def __init__(self, size, self_attn, feed_forward, dropout,
-                 intermediate_layer_predictions=True, generator=None, max_sequence_len=512, force_prediction=False):
+                 intermediate_layer_predictions=True, max_sequence_len=512, force_prediction=False):
         super(TransformerLayer, self).__init__()
         self.self_attn = self_attn
         self.feed_forward = feed_forward
@@ -160,17 +160,17 @@ class TransformerLayer(nn.Module):
         self.size = size
         self.intermediate_layer_predictions = intermediate_layer_predictions
         self.force_prediction = force_prediction
-        if intermediate_layer_predictions and self.training:
-            self.classifier = copy.deepcopy(generator)
+        #if intermediate_layer_predictions and self.training:
+        #    self.classifier = copy.deepcopy(generator)
 
     def forward(self, x, mask):
         x = self.add_positional_encoding(x)
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask))
         x = self.sublayer[1](x, self.feed_forward)
-        if self.force_prediction or (self.intermediate_layer_predictions and self.training):
-            return x, self.classifier(self.norm(x))
-        else:
-            return x, None
+        #if self.force_prediction or (self.intermediate_layer_predictions and self.training):
+        #    return x, self.classifier(self.norm(x))
+        #else:
+        return x, None
 
 
 class TransformerEncoder(nn.Module):
@@ -202,9 +202,9 @@ class TransformerModel(nn.Module):
         attn = MultiHeadedAttention(n_heads, hidden_size, dropout)
         ff = PositionwiseFeedForward(hidden_size, inner_linear, dropout)
 
-        generator = Generator(hidden_size, vocab_size)
+        #generator = Generator(hidden_size, vocab_size)
         self.encoder = TransformerEncoder(TransformerLayer(hidden_size, copy.deepcopy(attn), copy.deepcopy(ff),
-                                            dropout, intermediate_layer_predictions, generator,
+                                            dropout, intermediate_layer_predictions, #generator,
                                             max_sequence_len),
                                n_layers, intermediate_layer_predictions)
 
