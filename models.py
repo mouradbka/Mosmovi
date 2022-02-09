@@ -149,7 +149,7 @@ class CharLSTMCNNModel(nn.Module):
 class TransformerLayer(nn.Module):
     """Encoder is made up of self-attn and feed forward (defined below)"""
     def __init__(self, size, self_attn, feed_forward, dropout,
-                 intermediate_layer_predictions=True, max_sequence_len=512, force_prediction=False):
+                 intermediate_layer_predictions=False, max_sequence_len=512, force_prediction=False):
         super(TransformerLayer, self).__init__()
         self.self_attn = self_attn
         self.feed_forward = feed_forward
@@ -175,7 +175,7 @@ class TransformerLayer(nn.Module):
 
 class TransformerEncoder(nn.Module):
     """Core encoder is a stack of N layers"""
-    def __init__(self, layer, n_layers, intermediate_layer_predictions=True):
+    def __init__(self, layer, n_layers, intermediate_layer_predictions=False):
         super(TransformerEncoder, self).__init__()
         self.layers = clones(layer, n_layers)
         # enforce a prediction for the last layer
