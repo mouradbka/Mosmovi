@@ -67,7 +67,11 @@ def main():
         model = CharLSTMCNNModel(args)
 
     model.to(device)
-    criterion = nn.MSELoss()
+    if args.loss == 'mse':
+        criterion = nn.MSELoss()
+    elif args.loss == 'mae':
+        criterion = nn.L1Loss()
+
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
     elif args.optimizer == 'SGD':
