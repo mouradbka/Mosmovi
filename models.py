@@ -227,6 +227,7 @@ class TransformerModel(nn.Module):
         """Take in and process masked src and target sequences."""
         x = self._token_embed(x)
         x  = self.encoder(x, mask)
+        x = torch.mean(x, dim=1)
         return self._ffn(x)
 
 
