@@ -31,7 +31,7 @@ def pad_chars(instance, pad_to_max=-1):
         padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) for i in chars]
         return torch.stack(padded_chars), torch.stack(coords)
     else:
-        pad_length = pad_to_max
+        pad_length = int(pad_to_max)
         padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) if len(i) < pad_length else i[:pad_to_max] for i in chars]
         return torch.stack(padded_chars), torch.stack(coords)
 
