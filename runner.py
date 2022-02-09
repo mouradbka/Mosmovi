@@ -9,7 +9,8 @@ import torch.nn.functional as F
 from argparse import ArgumentParser
 from torch import nn
 from loader import TweetDataset
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset
+from sklearn.model_selection import train_test_split, GroupKFold, GroupShuffleSplit, ShuffleSplit
 from models import *
 
 import random
@@ -23,6 +24,7 @@ def main():
     parser.add_argument('--data_dir', default='./data', action='store')
     parser.add_argument('--model_type', default='char_lstm', choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn'])
     parser.add_argument('--loss', default='mse', choices=['mse', 'mae'])
+    parser.add_argument('--split_uids', action='store_true')
     parser.add_argument('--lr', default=1e-4)
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
     parser.add_argument('--dropout', default=0.3)
@@ -36,13 +38,19 @@ def main():
     wandb.init(project='mosmovi_1', config=args, name=args.run_name)
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir)
-    if args.subsample_ratio:
-        subsample_list = random.sample(range(len(tweet_dataset)), int(math.ceil(len(tweet_dataset) * float(args.subsample_ratio))))
-        tweet_dataset = torch.utils.data.Subset(tweet_dataset, subsample_list)
 
-    train_size = int(0.9 * len(tweet_dataset))
-    val_size = len(tweet_dataset) - train_size
-    train_dataset, val_dataset = random_split(tweet_dataset, [train_size, val_size])
+    if args.split_uids:
+        gss = GroupShuffleSplit(n_splits=1, train_size=0.9)
+        train_indices, val_indices = next(gss.split(np.arange(len(tweet_dataset)), groups=tweet_dataset.uids))
+    else:
+        ss = ShuffleSplit(n_splits=1, train_size=0.9)
+        train_indices, val_indices = next(ss.split(np.arange(len(tweet_dataset))))
+
+    train_dataset = Subset(tweet_dataset, train_indices)
+    val_dataset = Subset(tweet_dataset, val_indices)
+
+    if args.subsample_ratio:
+        train_dataset, val_dataset = utils.subsample_datasets(train_dataset, val_dataset, ratio=args.subsample_ratio)
 
     _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x))
     _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x))
@@ -59,7 +67,11 @@ def main():
         model = CharLSTMCNNModel(args)
 
     model.to(device)
-    criterion = nn.MSELoss()
+    if args.loss == 'mse':
+        criterion = nn.MSELoss()
+    elif args.loss == 'mae':
+        criterion = nn.L1Loss()
+
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
     elif args.optimizer == 'SGD':
