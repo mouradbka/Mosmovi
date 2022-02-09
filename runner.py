@@ -30,8 +30,9 @@ def main():
     parser.add_argument('--lr', default=1e-4)
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
     parser.add_argument('--dropout', default=0.3)
+    parser.add_argument('--max_seq_len', default=None)
     parser.add_argument('--batch_size', default=128)
-    parser.add_argument('--subsample_ratio', default=None)
+    parser.add_argument('--subsample_ratio', default=-1)
     parser.add_argument('--run_name', default=None)
 
     args = parser.parse_args()
@@ -54,8 +55,8 @@ def main():
     if args.subsample_ratio:
         train_dataset, val_dataset = utils.subsample_datasets(train_dataset, val_dataset, ratio=args.subsample_ratio)
 
-    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x))
-    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x))
+    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x, args.max_seq_len))
+    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x, args.max_seq_len))
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
