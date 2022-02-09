@@ -193,23 +193,22 @@ class TransformerEncoder(nn.Module):
 
 
 class TransformerModel(nn.Module):
-    def __init__(self, vocab_size, n_layers=8,
-                 hidden_size=256, inner_linear=512,
-                 n_heads=4, dropout=0.55, max_sequence_len=512,
+    def __init__(self, args, n_layers=8,
+                 hidden_size=128, inner_linear=256,
+                 n_heads=4, dropout=0.55,
                  intermediate_layer_predictions=False):
         super(TransformerModel, self).__init__()
 
         attn = MultiHeadedAttention(n_heads, hidden_size, dropout)
         ff = PositionwiseFeedForward(hidden_size, inner_linear, dropout)
 
-        #generator = Generator(hidden_size, vocab_size)
         self.encoder = TransformerEncoder(TransformerLayer(hidden_size, copy.deepcopy(attn), copy.deepcopy(ff),
                                             dropout, intermediate_layer_predictions, #generator,
-                                            max_sequence_len),
+                                            args.max_sequence_len),
                                n_layers, intermediate_layer_predictions)
 
-        self._token_embed = nn.Embedding(256, 256, 255)
-        self._ffn = nn.Linear(256, 2)
+        self._token_embed = nn.Embedding(256, 128, 255)
+        self._ffn = nn.Linear(128, 2)
 
         #self._token_embed = Embeddings(hidden_size, vocab_size)
 
@@ -219,7 +218,6 @@ class TransformerModel(nn.Module):
         #     if p.dim() > 1:
         #         nn.init.xavier_uniform_(p)
 
-        self.vocab_size = vocab_size
         self.intermediate_layer_predictions = intermediate_layer_predictions
         self.n_layers = n_layers
 
@@ -228,6 +226,7 @@ class TransformerModel(nn.Module):
         x = self._token_embed(x)
         x  = self.encoder(x, mask)
         x = torch.mean(x, dim=1)
+
         return self._ffn(x)
 
 
