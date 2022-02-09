@@ -22,10 +22,11 @@ logger = logging.getLogger()
 def main():
     parser = ArgumentParser()
     parser.add_argument('--data_dir', default='./data', action='store')
-    parser.add_argument('--model_type', default='char_pool', choices=['char_pool', 'char_lstm', 'char_cnn'])
+    parser.add_argument('--model_type', default='char_lstm', choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn'])
     parser.add_argument('--loss', default='mse', choices=['mse', 'mae'])
     parser.add_argument('--split_uids', action='store_true')
     parser.add_argument('--lr', default=1e-4)
+    parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
     parser.add_argument('--dropout', default=0.3)
     parser.add_argument('--batch_size', default=128)
     parser.add_argument('--subsample_ratio', default=None)
@@ -62,10 +63,15 @@ def main():
         model = CharLSTMModel(args)
     elif args.model_type == 'char_cnn':
         model = CharCNNModel(args)
+    elif args.model_type == 'char_lstm_cnn':
+        model = CharLSTMCNNModel(args)
 
     model.to(device)
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    if args.optimizer == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
+    elif args.optimizer == 'SGD':
+        optimizer = torch.optim.SGD(model.parameters(), lr=float(args.lr))
     model.train()
 
     for epoch in range(10):
