@@ -204,7 +204,7 @@ class TransformerModel(nn.Module):
 
         self.encoder = TransformerEncoder(TransformerLayer(hidden_size, copy.deepcopy(attn), copy.deepcopy(ff),
                                             dropout, intermediate_layer_predictions, #generator,
-                                            args.max_sequence_len),
+                                            args.max_seq_len),
                                n_layers, intermediate_layer_predictions)
 
         self._token_embed = nn.Embedding(256, 128, 255)
