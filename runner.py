@@ -65,6 +65,8 @@ def main():
         model = CharCNNModel(args)
     elif args.model_type == 'char_lstm_cnn':
         model = CharLSTMCNNModel(args)
+    elif args.model_type == 'char_transformer':
+        model = TransformerModel(args)
 
     model.to(device)
     if args.loss == 'mse':
