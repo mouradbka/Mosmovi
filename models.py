@@ -193,7 +193,7 @@ class TransformerEncoder(nn.Module):
 
 
 class TransformerModel(nn.Module):
-    def __init__(self, args, n_layers=8,
+    def __init__(self, args, n_layers=4,
                  hidden_size=128, inner_linear=256,
                  n_heads=4, dropout=0.55,
                  intermediate_layer_predictions=False):
