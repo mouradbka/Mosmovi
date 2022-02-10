@@ -45,7 +45,7 @@ def gc_distance(gold, pred):
     n_gold = torch.stack([cos_gold[:, 0] * cos_gold[:, 1], cos_gold[:, 0] * sin_gold[:, 1], sin_gold[:, 0]], dim=1)
     n_pred = torch.stack([cos_pred[:, 0] * cos_pred[:, 1], cos_pred[:, 0] * sin_pred[:, 1], sin_pred[:, 0]], dim=1)
 
-    return torch.acos(torch.inner(n_gold.to(device), n_pred.to(device)).diag()) * EARTH_RADIUS
+    return np.nan_to_num(torch.acos(torch.inner(n_gold.to(device), n_pred.to(device)).diag()) * EARTH_RADIUS)
 
 
 def pad_chars(instance, pad_to_max=-1):
@@ -86,7 +86,7 @@ def train(batch, model, optimizer, criterion, device):
 def evaluate(batch, model, criterion, device):
     chars, coords = batch
     pred = model(chars.to(device))
-    loss = np.nan_to_num(criterion(pred, coords.to(device)))
+    loss = criterion(pred, coords.to(device))
     distance = gc_distance(coords, pred)
 
     return loss, distance
