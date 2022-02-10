@@ -26,7 +26,7 @@ def main():
     parser.add_argument('--max_seq_len', default=-1)
     parser.add_argument('--subsample_ratio', default=-1)
     # model
-    parser.add_argument('--loss', default='mse', choices=['mse', 'mae', 'smooth_l1'])
+    parser.add_argument('--loss', default='mse', choices=['mse', 'l1', 'smooth_l1'])
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--dropout', type=float, default=0.3)
