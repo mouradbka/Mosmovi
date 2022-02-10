@@ -85,8 +85,8 @@ def main():
                 distances.extend(val_distance.tolist())
 
             # log
-            val_mean = np.mean(distances)
-            val_median = np.median(distances)
+            val_mean = np.nan_to_num(np.mean(distances))
+            val_median = np.nan_to_num(np.median(distances))
             wandb.log({"val_mean": val_mean, "val_median": val_median})
             logger.info(f"val_mean: {val_mean}")
             logger.info(f"val_median: {val_median}")
