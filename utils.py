@@ -86,7 +86,7 @@ def train(batch, model, optimizer, criterion, device):
 def evaluate(batch, model, criterion, device):
     chars, coords = batch
     pred = model(chars.to(device))
-    loss = criterion(pred, coords.to(device))
+    loss = np.nan_to_num(criterion(pred, coords.to(device)))
     distance = gc_distance(coords, pred)
 
     return loss, distance
