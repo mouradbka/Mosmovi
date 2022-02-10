@@ -37,9 +37,14 @@ def gc_distance(gold, pred):
 
 def pad_chars(instance, pad_to_max=-1):
     chars, coords = zip(*instance)
-    pad_length = max(map(len, chars)) if pad_to_max == -1 else pad_to_max
-    padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) for i in chars]
-    return torch.stack(padded_chars), torch.stack(coords)
+    if pad_to_max == -1:
+        pad_length = max(map(len, chars)) #if pad_to_max == -1 else pad_to_max
+        padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) for i in chars]
+        return torch.stack(padded_chars), torch.stack(coords)
+    else:
+        pad_length = int(pad_to_max)
+        padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) if len(i) < pad_length else i[:pad_length] for i in chars]
+        return torch.stack(padded_chars), torch.stack(coords)
 
 
 def subsample_datasets(train_dataset, val_dataset, ratio):

@@ -1,8 +1,9 @@
 import logging
 import torch
 import torch.nn.functional as F
-
 from torch import nn
+
+from annotated_transformer import *
 
 logger = logging.getLogger()
 
@@ -143,3 +144,89 @@ class CharLSTMCNNModel(nn.Module):
         # final linear layer
         x = self._fc3(x)
         return x
+
+
+class TransformerLayer(nn.Module):
+    """Encoder is made up of self-attn and feed forward (defined below)"""
+    def __init__(self, size, self_attn, feed_forward, dropout,
+                 intermediate_layer_predictions=False, max_sequence_len=1024, force_prediction=False):
+        super(TransformerLayer, self).__init__()
+        self.self_attn = self_attn
+        self.feed_forward = feed_forward
+        self.sublayer = clones(SublayerConnection(size, dropout), 2)
+        self.add_positional_encoding = AddPositionalEncoding(size, max_sequence_len)
+        self.norm = self.sublayer[0].norm
+
+        self.size = size
+        self.intermediate_layer_predictions = intermediate_layer_predictions
+        self.force_prediction = force_prediction
+        #if intermediate_layer_predictions and self.training:
+        #    self.classifier = copy.deepcopy(generator)
+
+    def forward(self, x, mask):
+        x = self.add_positional_encoding(x)
+        x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask))
+        x = self.sublayer[1](x, self.feed_forward)
+        #if self.force_prediction or (self.intermediate_layer_predictions and self.training):
+        #    return x, self.classifier(self.norm(x))
+        #else:
+        return x, None
+
+
+class TransformerEncoder(nn.Module):
+    """Core encoder is a stack of N layers"""
+    def __init__(self, layer, n_layers, intermediate_layer_predictions=False):
+        super(TransformerEncoder, self).__init__()
+        self.layers = clones(layer, n_layers)
+        # enforce a prediction for the last layer
+        self.layers[-1].force_prediction = True
+        self.norm = LayerNorm(layer.size)
+        self.intermediate_layer_predictions = intermediate_layer_predictions
+
+    def forward(self, x, mask):
+        """Pass the input (and mask) through each layer in turn."""
+        #intermediate_predictions = []
+        for layer in self.layers:
+            x, prediction = layer(x, mask)
+            #intermediate_predictions.append(prediction)
+        return self.norm(x)#, intermediate_predictions
+
+
+class TransformerModel(nn.Module):
+    def __init__(self, args, n_layers=4,
+                 hidden_size=128, inner_linear=256,
+                 n_heads=4, dropout=0.55,
+                 intermediate_layer_predictions=False):
+        super(TransformerModel, self).__init__()
+
+        attn = MultiHeadedAttention(n_heads, hidden_size, dropout)
+        ff = PositionwiseFeedForward(hidden_size, inner_linear, dropout)
+
+        self.encoder = TransformerEncoder(TransformerLayer(hidden_size, copy.deepcopy(attn), copy.deepcopy(ff),
+                                            dropout, intermediate_layer_predictions, #generator,
+                                            int(args.max_seq_len)),
+                               n_layers, intermediate_layer_predictions)
+
+        self._token_embed = nn.Embedding(256, 128, 255)
+        self._ffn = nn.Linear(128, 2)
+
+        #self._token_embed = Embeddings(hidden_size, vocab_size)
+
+        # This was important from their code.
+        # Initialize parameters with Glorot / fan_avg.
+        # for p in self.parameters():
+        #     if p.dim() > 1:
+        #         nn.init.xavier_uniform_(p)
+
+        self.intermediate_layer_predictions = intermediate_layer_predictions
+        self.n_layers = n_layers
+
+    def forward(self, x, mask=None):
+        """Take in and process masked src and target sequences."""
+        x = self._token_embed(x)
+        x  = self.encoder(x, mask)
+        x = torch.mean(x, dim=1)
+
+        return self._ffn(x)
+
+

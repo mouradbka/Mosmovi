@@ -17,10 +17,22 @@ def main():
     parser = ArgumentParser()
     # script
     parser.add_argument('--data_dir', default='./data', action='store')
+    parser.add_argument('--model_type', default='char_lstm', choices=['char_pool', 'char_lstm',
+                                                                      'char_cnn', 'char_lstm_cnn',
+                                                                      'char_transformer'])
+    parser.add_argument('--loss', default='mse', choices=['mse', 'mae', 'smooth_l1'])
     parser.add_argument('--run_name', default=None)
     parser.add_argument('--save_prefix', default='model')
     # data
     parser.add_argument('--split_uids', action='store_true')
+    parser.add_argument('--lr', default=1e-4)
+    parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
+    parser.add_argument('--dropout', default=0.3)
+    parser.add_argument('--max_seq_len', default=None)
+    parser.add_argument('--batch_size', default=128)
+    parser.add_argument('--subsample_ratio', default=-1)
+    parser.add_argument('--run_name', default=None)
+
     parser.add_argument('--subsample_ratio', default=None)
     # model
     parser.add_argument('--arch', default='char_pool', choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn'])
@@ -50,8 +62,8 @@ def main():
     if args.subsample_ratio:
         train_dataset, val_dataset = utils.subsample_datasets(train_dataset, val_dataset, ratio=args.subsample_ratio)
 
-    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x))
-    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x))
+    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x, args.max_seq_len))
+    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x, args.max_seq_len))
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
@@ -59,7 +71,13 @@ def main():
     model = model_arch(args)
 
     model.to(device)
-    criterion = nn.MSELoss()
+    if args.loss == 'mse':
+        criterion = nn.MSELoss()
+    elif args.loss == 'mae':
+        criterion = nn.L1Loss()
+    elif args.loss == 'smooth_l1':
+        criterion = nn.SmoothL1Loss()
+
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
     elif args.optimizer == 'SGD':
