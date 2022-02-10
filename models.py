@@ -45,7 +45,7 @@ class CharCNNModel(nn.Module):
             nn.MaxPool1d(kernel_size=3, stride=3)
         )
         self._conv2 = nn.Sequential(
-            nn.Conv1d(128, 128, kernel_size=7, stride=1),
+            nn.Conv1d(128, 128, kernel_size=7, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=3, stride=3)
         )
