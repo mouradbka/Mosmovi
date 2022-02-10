@@ -1,11 +1,22 @@
 import math
+import shutil
 import random
 import torch
 import torch.nn.functional as F
+from models import *
 
 
 EARTH_RADIUS = 6372.8
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
+def get_archs():
+    return {
+        'char_pool': CharModel,
+        'char_lstm': CharLSTMModel,
+        'char_cnn': CharCNNModel,
+        'char_lstm_cnn': CharLSTMCNNModel
+    }
 
 
 def gc_distance(gold, pred):

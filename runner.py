@@ -1,37 +1,35 @@
-import logging
 import numpy as np
 import wandb
 import utils
 import tqdm
-import torch
-import torch.nn.functional as F
 
 from argparse import ArgumentParser
-from torch import nn
 from loader import TweetDataset
 from torch.utils.data import DataLoader, Subset
 from sklearn.model_selection import train_test_split, GroupKFold, GroupShuffleSplit, ShuffleSplit
 from models import *
 
-import random
-import math
-
 logger = logging.getLogger()
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 
 def main():
     parser = ArgumentParser()
+    # script
     parser.add_argument('--data_dir', default='./data', action='store')
-    parser.add_argument('--model_type', default='char_lstm', choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn'])
-    parser.add_argument('--loss', default='mse', choices=['mse', 'mae'])
-    parser.add_argument('--split_uids', action='store_true')
-    parser.add_argument('--lr', default=1e-4)
-    parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
-    parser.add_argument('--dropout', default=0.3)
-    parser.add_argument('--batch_size', default=128)
-    parser.add_argument('--subsample_ratio', default=None)
     parser.add_argument('--run_name', default=None)
-
+    parser.add_argument('--save_prefix', default='model')
+    # data
+    parser.add_argument('--split_uids', action='store_true')
+    parser.add_argument('--subsample_ratio', default=None)
+    # model
+    parser.add_argument('--arch', default='char_pool', choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn'])
+    parser.add_argument('--loss', default='mse', choices=['mse', 'mae'])
+    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
+    parser.add_argument('--dropout', type=float, default=0.3)
+    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--num_epochs', type=int, default=10)
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -57,14 +55,8 @@ def main():
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
-    if args.model_type == 'char_pool':
-        model = CharModel(args)
-    elif args.model_type == 'char_lstm':
-        model = CharLSTMModel(args)
-    elif args.model_type == 'char_cnn':
-        model = CharCNNModel(args)
-    elif args.model_type == 'char_lstm_cnn':
-        model = CharLSTMCNNModel(args)
+    model_arch = utils.get_archs()[args.arch]
+    model = model_arch(args)
 
     model.to(device)
     criterion = nn.MSELoss()
@@ -72,9 +64,10 @@ def main():
         optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
     elif args.optimizer == 'SGD':
         optimizer = torch.optim.SGD(model.parameters(), lr=float(args.lr))
-    model.train()
 
-    for epoch in range(10):
+    best_mean = 999999
+    for epoch in range(args.num_epochs):
+        model.train()
         for batch in train_iter:
             train_loss = utils.train(batch, model, optimizer, criterion, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
@@ -85,9 +78,29 @@ def main():
             for batch in val_iter:
                 val_loss, val_distance = utils.evaluate(batch, model, criterion, device=device)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
-                wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
                 distances.extend(val_distance.tolist())
-            wandb.log({"val_mean": np.mean(distances), "val_median": np.median(distances)})
+
+            # log
+            val_mean = np.mean(distances)
+            val_median = np.median(distances)
+            wandb.log({"val_mean": val_mean, "val_median": val_median})
+            logger.info(f"val_mean: {val_mean}")
+            logger.info(f"val_median: {val_median}")
+
+            # save model
+            is_best = val_mean < best_mean
+            best_mean = min(val_mean, best_mean)
+
+            if is_best:
+                logger.warning(f"saving {args.save_prefix}.pt @ epoch {epoch}; mean distance: {val_mean}")
+                torch.save({
+                    'state_dict': model.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                    'criterion': criterion,
+                    'epoch': epoch,
+                    'arch': args.arch,
+                    'val_mean': val_mean
+                }, args.save_prefix + '.pt')
 
 
 if __name__ == '__main__':
