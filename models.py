@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from annotated_transformer import *
+from model_utils import *
 
 logger = logging.getLogger()
 
@@ -66,9 +66,17 @@ class CharCNNModel(nn.Module):
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
         )
-        self._fc1 = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(p=args.dropout))
-        self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=args.dropout))
+
+        if hasattr(args, 'dropout'):
+            self.dropout = args.dropout
+        else:
+            self.dropout = 0.0
+
+        self._fc1 = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(p=self.dropout))
+        self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
         self._fc3 = nn.Linear(128, 2)
+
+
 
     def forward(self, x):
         x = self._token_embed(x)
@@ -122,8 +130,14 @@ class CharLSTMCNNModel(nn.Module):
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
         )
-        self._fc1 = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(p=args.dropout))
-        self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=args.dropout))
+
+        if hasattr(args, 'dropout'):
+            self.dropout = args.dropout
+        else:
+            self.dropout = 0.0
+
+        self._fc1 = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(p=self.dropout))
+        self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
         self._fc3 = nn.Linear(128, 2)
 
     def forward(self, x):
@@ -147,29 +161,21 @@ class CharLSTMCNNModel(nn.Module):
 
 
 class TransformerLayer(nn.Module):
-    """Encoder is made up of self-attn and feed forward (defined below)"""
+    """Encoder is made up of self-attn and feed forward """
     def __init__(self, size, self_attn, feed_forward, dropout,
-                 intermediate_layer_predictions=False, max_sequence_len=1024, force_prediction=False):
+                 intermediate_layer_predictions=False, max_sequence_len=1024):
         super(TransformerLayer, self).__init__()
         self.self_attn = self_attn
         self.feed_forward = feed_forward
         self.sublayer = clones(SublayerConnection(size, dropout), 2)
         self.add_positional_encoding = AddPositionalEncoding(size, max_sequence_len)
         self.norm = self.sublayer[0].norm
-
         self.size = size
-        self.intermediate_layer_predictions = intermediate_layer_predictions
-        self.force_prediction = force_prediction
-        #if intermediate_layer_predictions and self.training:
-        #    self.classifier = copy.deepcopy(generator)
 
     def forward(self, x, mask):
         x = self.add_positional_encoding(x)
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask))
         x = self.sublayer[1](x, self.feed_forward)
-        #if self.force_prediction or (self.intermediate_layer_predictions and self.training):
-        #    return x, self.classifier(self.norm(x))
-        #else:
         return x, None
 
 
@@ -181,15 +187,11 @@ class TransformerEncoder(nn.Module):
         # enforce a prediction for the last layer
         self.layers[-1].force_prediction = True
         self.norm = LayerNorm(layer.size)
-        self.intermediate_layer_predictions = intermediate_layer_predictions
 
     def forward(self, x, mask):
-        """Pass the input (and mask) through each layer in turn."""
-        #intermediate_predictions = []
         for layer in self.layers:
             x, prediction = layer(x, mask)
-            #intermediate_predictions.append(prediction)
-        return self.norm(x)#, intermediate_predictions
+        return x #self.norm(x)#, intermediate_predictions
 
 
 class TransformerModel(nn.Module):
@@ -210,13 +212,10 @@ class TransformerModel(nn.Module):
         self._token_embed = nn.Embedding(256, 128, 255)
         self._ffn = nn.Linear(128, 2)
 
-        #self._token_embed = Embeddings(hidden_size, vocab_size)
-
-        # This was important from their code.
         # Initialize parameters with Glorot / fan_avg.
-        # for p in self.parameters():
-        #     if p.dim() > 1:
-        #         nn.init.xavier_uniform_(p)
+        for p in self.parameters():
+             if p.dim() > 1:
+                 nn.init.xavier_uniform_(p)
 
         self.intermediate_layer_predictions = intermediate_layer_predictions
         self.n_layers = n_layers
