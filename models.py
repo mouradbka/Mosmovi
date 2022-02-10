@@ -54,19 +54,18 @@ class CharCNNModel(nn.Module):
             nn.ReLU()
         )
         self._conv4 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU()
         )
         self._conv5 = nn.Sequential(
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU()
+        )
+        self._conv6 = nn.Sequential(
             nn.Conv1d(256, 256, kernel_size=3, stride=1),
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
         )
-        #self._conv6 = nn.Sequential(
-        #    nn.Conv1d(256, 256, kernel_size=3, stride=1),
-        #    nn.ReLU(),
-        #    nn.AdaptiveMaxPool1d(output_size=1)
-        #)
 
         if hasattr(args, 'dropout'):
             self.dropout = args.dropout
@@ -87,8 +86,8 @@ class CharCNNModel(nn.Module):
         x = self._conv2(x)
         x = self._conv3(x)
         x = self._conv4(x)
-        x = self._conv5(x).squeeze()
-        #x = self._conv6(x).squeeze()
+        x = self._conv5(x)
+        x = self._conv6(x).squeeze()
         # linear layer
         x = self._fc1(x)
         # linear layer
@@ -119,20 +118,20 @@ class CharLSTMCNNModel(nn.Module):
             nn.ReLU()
         )
         self._conv4 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU()
         )
         self._conv5 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
 
         )
-        #self._conv6 = nn.Sequential(
-        #    nn.Conv1d(256, 256, kernel_size=3, stride=1),
-        #    nn.ReLU(),
-        #    nn.AdaptiveMaxPool1d(output_size=1)
-        #)
+        self._conv6 = nn.Sequential(
+            nn.Conv1d(256, 256, kernel_size=3, stride=1),
+            nn.ReLU(),
+            nn.AdaptiveMaxPool1d(output_size=1)
+        )
 
         if hasattr(args, 'dropout'):
             self.dropout = args.dropout
@@ -152,8 +151,8 @@ class CharLSTMCNNModel(nn.Module):
         x = self._conv2(x)
         x = self._conv3(x)
         x = self._conv4(x)
-        x = self._conv5(x).squeeze()
-        #x = self._conv6(x).squeeze()
+        x = self._conv5(x)
+        x = self._conv6(x).squeeze()
         # linear layer
         x = self._fc1(x)
         # linear layer
