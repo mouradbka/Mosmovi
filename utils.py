@@ -51,8 +51,11 @@ def gc_distance(gold, pred):
 def pad_chars(instance, pad_to_max=-1):
     chars, coords = zip(*instance)
     if pad_to_max == -1:
-        pad_length = max(map(len, chars)) #if pad_to_max == -1 else pad_to_max
-        padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) for i in chars]
+        pad_length = max(map(len, chars))
+        # make sure that seqs of chars + padding aren't shorter than 3 (kernel size for cnn)
+        if pad_length < 3:
+            pad_length = 3
+        padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255)  for i in chars]
         return torch.stack(padded_chars), torch.stack(coords)
     else:
         pad_length = int(pad_to_max)
