@@ -25,6 +25,8 @@ def main():
     parser.add_argument('--model_path', required=True, type=str, action='store')
     parser.add_argument('--data_dir', required=True, type=str, action='store')
     parser.add_argument('--test_batch_size', default=32)
+    #parser.add_argument('--max_seq_len', default=-1)
+
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -38,6 +40,7 @@ def main():
     model = model_arch(args)
     model.load_state_dict(state['state_dict'])
     model.to(device)
+    model.eval()
 
     with torch.no_grad():
         distances = []
