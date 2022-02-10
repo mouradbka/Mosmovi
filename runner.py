@@ -17,28 +17,18 @@ def main():
     parser = ArgumentParser()
     # script
     parser.add_argument('--data_dir', default='./data', action='store')
-    parser.add_argument('--model_type', default='char_lstm', choices=['char_pool', 'char_lstm',
-                                                                      'char_cnn', 'char_lstm_cnn',
-                                                                      'char_transformer'])
-    parser.add_argument('--loss', default='mse', choices=['mse', 'mae', 'smooth_l1'])
+    parser.add_argument('--arch', default='char_pool',
+                        choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn', 'char_transformer'])
     parser.add_argument('--run_name', default=None)
     parser.add_argument('--save_prefix', default='model')
     # data
     parser.add_argument('--split_uids', action='store_true')
-    parser.add_argument('--lr', default=1e-4)
-    parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
-    parser.add_argument('--dropout', default=0.3)
-    parser.add_argument('--max_seq_len', default=None)
-    parser.add_argument('--batch_size', default=128)
+    parser.add_argument('--max_seq_len', default=-1)
     parser.add_argument('--subsample_ratio', default=-1)
-    parser.add_argument('--run_name', default=None)
-
-    parser.add_argument('--subsample_ratio', default=None)
     # model
-    parser.add_argument('--arch', default='char_pool', choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn'])
-    parser.add_argument('--loss', default='mse', choices=['mse', 'mae'])
-    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--loss', default='mse', choices=['mse', 'mae', 'smooth_l1'])
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
+    parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--dropout', type=float, default=0.3)
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--num_epochs', type=int, default=10)
@@ -67,16 +57,11 @@ def main():
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
-    model_arch = utils.get_archs()[args.arch]
+    model_arch = utils.get_arch(args.arch)
     model = model_arch(args)
-
     model.to(device)
-    if args.loss == 'mse':
-        criterion = nn.MSELoss()
-    elif args.loss == 'mae':
-        criterion = nn.L1Loss()
-    elif args.loss == 'smooth_l1':
-        criterion = nn.SmoothL1Loss()
+
+    criterion = utils.get_criterion(args.loss)
 
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
@@ -96,6 +81,7 @@ def main():
             for batch in val_iter:
                 val_loss, val_distance = utils.evaluate(batch, model, criterion, device=device)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
+                wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
                 distances.extend(val_distance.tolist())
 
             # log

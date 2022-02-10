@@ -34,7 +34,7 @@ def main():
 
     criterion = state['criterion']
 
-    model_arch = utils.get_archs()[state['arch']]
+    model_arch = utils.get_arch(state['arch'])
     model = model_arch(args)
     model.load_state_dict(state['state_dict'])
     model.to(device)

@@ -3,6 +3,8 @@ import shutil
 import random
 import torch
 import torch.nn.functional as F
+
+from torch import nn
 from models import *
 
 
@@ -10,13 +12,24 @@ EARTH_RADIUS = 6372.8
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def get_archs():
-    return {
+def get_arch(arch):
+    archs = {
         'char_pool': CharModel,
         'char_lstm': CharLSTMModel,
         'char_cnn': CharCNNModel,
-        'char_lstm_cnn': CharLSTMCNNModel
+        'char_lstm_cnn': CharLSTMCNNModel,
+        'char_transformer': TransformerModel,
     }
+    return archs[arch]
+
+
+def get_criterion(crit):
+    crits = {
+        'mse': nn.MSELoss(),
+        'l1': nn.L1Loss(),
+        'smooth_l1': nn.SmoothL1Loss(),
+    }
+    return crits[crit]
 
 
 def gc_distance(gold, pred):
