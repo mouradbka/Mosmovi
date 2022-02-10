@@ -50,15 +50,15 @@ class CharCNNModel(nn.Module):
             nn.MaxPool1d(kernel_size=3, stride=3)
         )
         self._conv3 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding='same'),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU()
         )
         self._conv4 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding='same'),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU()
         )
         self._conv5 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding='same'),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU()
         )
         self._conv6 = nn.Sequential(
@@ -114,15 +114,15 @@ class CharLSTMCNNModel(nn.Module):
             nn.MaxPool1d(kernel_size=3, stride=3)
         )
         self._conv3 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding='same'),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU()
         )
         self._conv4 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding='same'),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU()
         )
         self._conv5 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding='same'),
+            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
 
