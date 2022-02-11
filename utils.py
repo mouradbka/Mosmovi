@@ -84,8 +84,9 @@ def train(batch, model, optimizer, criterion, device):
 
 def evaluate(batch, model, criterion, device, generate=False):
     chars, lengths, coords = batch
-
-    pred = model(chars.to(device))
+    #check if batch dim squeezed out during pred, fix
+    if len(pred.shape) == 1:
+        pred = pred[None, :]
     loss = criterion(pred, coords.to(device))
     distance = gc_distance(coords, pred)
 
