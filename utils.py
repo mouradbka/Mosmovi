@@ -43,6 +43,7 @@ def gc_distance(gold, pred):
     cos_pred = torch.cos(rad_pred)
     sin_pred = torch.sin(rad_pred)
 
+
     n_gold = torch.stack([cos_gold[:, 0] * cos_gold[:, 1], cos_gold[:, 0] * sin_gold[:, 1], sin_gold[:, 0]], dim=1)
     n_pred = torch.stack([cos_pred[:, 0] * cos_pred[:, 1], cos_pred[:, 0] * sin_pred[:, 1], sin_pred[:, 0]], dim=1)
 
@@ -84,8 +85,10 @@ def train(batch, model, optimizer, criterion, device):
 
 def evaluate(batch, model, criterion, device, generate=False):
     chars, lengths, coords = batch
-
+    #check if batch dim squeezed out during pred, fix
     pred = model(chars.to(device))
+    if len(pred.shape) == 1:
+        pred = pred[None, :]
     loss = criterion(pred, coords.to(device))
     distance = gc_distance(coords, pred)
 

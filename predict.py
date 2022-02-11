@@ -25,11 +25,17 @@ def main():
     parser.add_argument('--model_path', required=True, type=str, action='store')
     parser.add_argument('--data_dir', required=True, type=str, action='store')
     parser.add_argument('--generate', action='store_true')
+    parser.add_argument('--batch_size', default=128)
+
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     test_dataset = TweetDataset(data_dir=args.data_dir)
-    test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=1, collate_fn=lambda x: utils.pad_chars(x)))
+    if args.generate:
+        test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=1, collate_fn=lambda x: utils.pad_chars(x)))
+    else:
+        test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=args.batch_size, collate_fn=lambda x: utils.pad_chars(x)))
+
     state = torch.load(args.model_path, map_location=device)
 
     criterion = state['criterion']
