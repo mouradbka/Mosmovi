@@ -18,8 +18,6 @@ def get_arch(arch):
         'char_pool': CharModel,
         'char_lstm': CharLSTMModel,
         'char_cnn': CharCNNModel,
-        'char_lstm_cnn': CharLSTMCNNModel,
-        'char_transformer': TransformerModel,
     }
     return archs[arch]
 
