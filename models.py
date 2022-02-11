@@ -40,12 +40,12 @@ class CharCNNModel(nn.Module):
         self._token_embed = nn.Embedding(256, 150, 255)
 
         self._conv1 = nn.Sequential(
-            nn.Conv1d(150, 128, kernel_size=7, stride=1),
+            nn.Conv1d(150, 128, kernel_size=7, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=3, stride=3, padding=1)
         )
         self._conv2 = nn.Sequential(
-            nn.Conv1d(128, 128, kernel_size=7, stride=1),
+            nn.Conv1d(128, 128, kernel_size=7, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=3, stride=3, padding=1)
         )
@@ -62,7 +62,7 @@ class CharCNNModel(nn.Module):
             nn.ReLU()
         )
         self._conv6 = nn.Sequential(
-            nn.Conv1d(128, 128, kernel_size=3, stride=1),
+            nn.Conv1d(128, 128, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
         )
