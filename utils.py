@@ -42,11 +42,6 @@ def gc_distance(gold, pred):
     sin_gold = torch.sin(rad_gold)
     cos_pred = torch.cos(rad_pred)
     sin_pred = torch.sin(rad_pred)
-    #expand pred dims when batch size = 1
-    if len(sin_pred) == 1:
-        cos_pred.unsqueeze()
-        sin_pred.unsqueeze()
-
 
     n_gold = torch.stack([cos_gold[:, 0] * cos_gold[:, 1], cos_gold[:, 0] * sin_gold[:, 1], sin_gold[:, 0]], dim=1)
     n_pred = torch.stack([cos_pred[:, 0] * cos_pred[:, 1], cos_pred[:, 0] * sin_pred[:, 1], sin_pred[:, 0]], dim=1)
