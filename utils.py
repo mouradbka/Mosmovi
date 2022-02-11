@@ -86,6 +86,7 @@ def train(batch, model, optimizer, criterion, device):
 def evaluate(batch, model, criterion, device, generate=False):
     chars, lengths, coords = batch
     #check if batch dim squeezed out during pred, fix
+    pred = model(chars.to(device))
     if len(pred.shape) == 1:
         pred = pred[None, :]
     loss = criterion(pred, coords.to(device))
