@@ -24,14 +24,12 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('--model_path', required=True, type=str, action='store')
     parser.add_argument('--data_dir', required=True, type=str, action='store')
-    parser.add_argument('--test_batch_size', default=32)
-    #parser.add_argument('--max_seq_len', default=-1)
-
+    parser.add_argument('--generate', action='store_true')
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     test_dataset = TweetDataset(data_dir=args.data_dir)
-    test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=int(args.test_batch_size), collate_fn=lambda x: utils.pad_chars(x)))
+    test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=1, collate_fn=lambda x: utils.pad_chars(x)))
     state = torch.load(args.model_path, map_location=device)
 
     criterion = state['criterion']
@@ -45,7 +43,7 @@ def main():
     with torch.no_grad():
         distances = []
         for batch in test_iter:
-            test_loss, test_distance = utils.evaluate(batch, model, criterion, device=device)
+            test_loss, test_distance = utils.evaluate(batch, model, criterion, device=device, generate=args.generate)
             test_iter.set_description(f"test loss: {test_loss.item()}")
             distances.extend(test_distance.tolist())
         logger.info(f"test_mean: {np.mean(distances)}, test_median: {np.median(distances)}")

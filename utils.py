@@ -1,4 +1,5 @@
 import math
+import sys
 import shutil
 import random
 import torch
@@ -51,16 +52,14 @@ def gc_distance(gold, pred):
 def pad_chars(instance, pad_to_max=-1):
     chars, coords = zip(*instance)
     if pad_to_max == -1:
-        pad_length = max(map(len, chars))
-        # make sure that seqs of chars + padding aren't shorter than 3 (kernel size for cnn)
-        if pad_length < 7:
-            pad_length = 7
-        padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255)  for i in chars]
-        return torch.stack(padded_chars), torch.stack(coords)
+        pad_length = max(7, max(map(len, chars)))
+        padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) for i in chars]
     else:
         pad_length = int(pad_to_max)
         padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) if len(i) < pad_length else i[:pad_length] for i in chars]
-        return torch.stack(padded_chars), torch.stack(coords)
+
+    lengths = [len(i) for i in chars]
+    return torch.stack(padded_chars), torch.LongTensor(lengths), torch.stack(coords)
 
 
 def subsample_datasets(train_dataset, val_dataset, ratio):
@@ -72,7 +71,7 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
 
 
 def train(batch, model, optimizer, criterion, device):
-    chars, coords = batch
+    chars, lengths, coords = batch
     pred = model(chars.to(device))
 
     optimizer.zero_grad()
@@ -83,11 +82,19 @@ def train(batch, model, optimizer, criterion, device):
     return loss
 
 
-def evaluate(batch, model, criterion, device):
-    chars, coords = batch
+def evaluate(batch, model, criterion, device, generate=False):
+    chars, lengths, coords = batch
+
     pred = model(chars.to(device))
     loss = criterion(pred, coords.to(device))
     distance = gc_distance(coords, pred)
+
+    if generate:
+        assert len(chars) == len(pred) == 1
+        # use lengths to avoid having strings shorter than 7 bytes
+        tweet = bytes(chars[0][:lengths[0]]).decode("utf-8")
+        lat, long = pred[0][0], pred[0][1]
+        sys.stdout.write(f"{tweet}\t({lat}, {long})\n")
 
     return loss, distance
 
