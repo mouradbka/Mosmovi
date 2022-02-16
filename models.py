@@ -15,8 +15,9 @@ class CharModel(nn.Module):
         self._token_embed = nn.Embedding(256, 300, 255)
         self._ffn = nn.Linear(300, 2)
 
-    def forward(self, chars):
-        embed = self._token_embed(chars)
+    def forward(self, byte_tokens, word_tokens):
+        input_ids = byte_tokens.input_ids
+        embed = self._token_embed(input_ids)
         pool = torch.mean(embed, dim=1)
         return self._ffn(pool)
 
@@ -28,8 +29,9 @@ class CharLSTMModel(nn.Module):
         self._ffn = nn.Linear(300, 2)
         self._lstm = nn.LSTM(150,150,2,bidirectional=True,batch_first=True)
 
-    def forward(self, chars):
-        embed = self._token_embed(chars)
+    def forward(self, byte_tokens, word_tokens):
+        input_ids = byte_tokens.input_ids
+        embed = self._token_embed(input_ids)
         context_embeds = self._lstm(embed)[0]
         pool = torch.mean(context_embeds, dim=1)
         return self._ffn(pool)
@@ -77,10 +79,9 @@ class CharCNNModel(nn.Module):
         self._fc2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Dropout(p=self.dropout))
         self._fc3 = nn.Linear(64, 2)
 
-
-
-    def forward(self, x):
-        x = self._token_embed(x)
+    def forward(self, byte_tokens, word_tokens):
+        input_ids = byte_tokens.input_ids
+        x = self._token_embed(input_ids)
         # transpose
         x = x.permute(0, 2, 1)
         x = self._conv1(x)
@@ -126,7 +127,6 @@ class CharLSTMCNNModel(nn.Module):
             nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
-
         )
         self._conv6 = nn.Sequential(
             nn.Conv1d(256, 256, kernel_size=3, stride=1),
@@ -143,8 +143,9 @@ class CharLSTMCNNModel(nn.Module):
         self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
         self._fc3 = nn.Linear(128, 2)
 
-    def forward(self, x):
-        x = self._token_embed(x)
+    def forward(self, byte_tokens, word_tokens):
+        input_ids = byte_tokens.input_ids
+        x = self._token_embed(input_ids)
         x = self._lstm(x)[0]
         # transpose
         x = x.permute(0, 2, 1)
@@ -223,10 +224,12 @@ class TransformerModel(nn.Module):
         self.intermediate_layer_predictions = intermediate_layer_predictions
         self.n_layers = n_layers
 
-    def forward(self, x, mask=None):
+    def forward(self, byte_tokens, word_tokens):
+        input_ids = byte_tokens.input_ids
+        attention_mask = byte_tokens.attention_mask
         """Take in and process masked src and target sequences."""
-        x = self._token_embed(x)
-        x  = self.encoder(x, mask)
+        embeds = self._token_embed(input_ids)
+        x = self.encoder(embeds, attention_mask)
         x = torch.mean(x, dim=1)
 
         return self._ffn(x)
@@ -237,7 +240,7 @@ class BertRegressor(nn.Module):
         super(BertRegressor, self).__init__()
         self._model = BertModel.from_pretrained('bert-base-multilingual-cased')
 
-    def forward(self, tokens):
+    def forward(self, byte_tokens, word_tokens):
         pass
 
 
@@ -246,5 +249,5 @@ class ByT5Regressor(nn.Module):
         super(ByT5Regressor, self).__init__()
         self._model = T5Model.from_pretrained('google/byt5-small')
 
-    def forward(self, tokens):
+    def forward(self, byte_tokens, word_tokens):
         pass
