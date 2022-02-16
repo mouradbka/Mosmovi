@@ -3,6 +3,7 @@ import wandb
 import utils
 import tqdm
 
+from transformers import get_scheduler
 from argparse import ArgumentParser
 from loader import TweetDataset
 from torch.utils.data import DataLoader, Subset
@@ -18,7 +19,8 @@ def main():
     # script
     parser.add_argument('--data_dir', default='./data', action='store')
     parser.add_argument('--arch', default='char_pool',
-                        choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn', 'char_transformer'])
+                        choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn', 'char_transformer',
+                                 'bert', 'byt5'])
     parser.add_argument('--run_name', default=None)
     parser.add_argument('--save_prefix', default='model')
     # data
@@ -27,7 +29,9 @@ def main():
     parser.add_argument('--subsample_ratio', default=-1)
     # model
     parser.add_argument('--loss', default='mse', choices=['mse', 'l1', 'smooth_l1'])
-    parser.add_argument('--optimizer', default='adam', choices=['adam', 'SGD'])
+    parser.add_argument('--optimizer', default='adam', choices=['adam', 'adamw', 'sgd'])
+    parser.add_argument('--scheduler', default='constant', choices=['linear', 'constant'])
+    parser.add_argument('--warmup_ratio', default=0.2, type=float)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--dropout', type=float, default=0.3)
     parser.add_argument('--batch_size', type=int, default=128)
@@ -61,18 +65,17 @@ def main():
     model = model_arch(args)
     model.to(device)
 
+    num_training_steps = args.num_epochs * len(train_iter)
     criterion = utils.get_criterion(args.loss)
-
-    if args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=float(args.lr))
-    elif args.optimizer == 'SGD':
-        optimizer = torch.optim.SGD(model.parameters(), lr=float(args.lr))
+    optimizer = utils.get_optimizer(args.optimizer)(model.parameters(), lr=args.lr)
+    scheduler = get_scheduler(args.scheduler, optimizer, num_warmup_steps=num_training_steps * args.warmup_ratio,
+                              num_training_steps=num_training_steps)
 
     best_mean = 999999
     for epoch in range(args.num_epochs):
         model.train()
         for batch in train_iter:
-            train_loss = utils.train(batch, model, optimizer, criterion, device=device)
+            train_loss = utils.train(batch, model, optimizer, scheduler, criterion, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
 

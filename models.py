@@ -2,6 +2,7 @@ import logging
 import torch
 import torch.nn.functional as F
 from torch import nn
+from transformers import BertModel, T5Model
 
 from model_utils import *
 
@@ -231,3 +232,19 @@ class TransformerModel(nn.Module):
         return self._ffn(x)
 
 
+class BertRegressor(nn.Module):
+    def __init__(self, args):
+        super(BertRegressor, self).__init__()
+        self._model = BertModel.from_pretrained('bert-base-multilingual-cased')
+
+    def forward(self, tokens):
+        pass
+
+
+class ByT5Regressor(nn.Module):
+    def __init__(self, args):
+        super(ByT5Regressor, self).__init__()
+        self._model = T5Model.from_pretrained('google/byt5-small')
+
+    def forward(self, tokens):
+        pass

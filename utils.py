@@ -5,7 +5,8 @@ import random
 import torch
 import torch.nn.functional as F
 
-from torch import nn
+from torch import nn, optim
+from transformers import BertTokenizer
 from models import *
 
 
@@ -20,6 +21,8 @@ def get_arch(arch):
         'char_cnn': CharCNNModel,
         'char_lstm_cnn': CharLSTMCNNModel,
         'char_transformer': TransformerModel,
+        'bert': BertRegressor,
+        'byt5': ByT5Regressor,
     }
     return archs[arch]
 
@@ -31,6 +34,15 @@ def get_criterion(crit):
         'smooth_l1': nn.SmoothL1Loss(),
     }
     return crits[crit]
+
+
+def get_optimizer(opt):
+    optimizers = {
+        'adam': optim.Adam,
+        'adamw': optim.AdamW,
+        'sgd': optim.SGD,
+    }
+    return optimizers[opt]
 
 
 def gc_distance(gold, pred):
@@ -51,7 +63,12 @@ def gc_distance(gold, pred):
 
 
 def pad_chars(instance, pad_to_max=-1):
-    chars, coords = zip(*instance)
+    tokens, chars, coords = zip(*instance)
+
+    # convert tokens to BERT tokens
+    tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+    bert_tokens = tokenizer(tokens, padding=True, return_tensors='pt')
+
     if pad_to_max == -1:
         pad_length = max(7, max(map(len, chars)))
         padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) for i in chars]
@@ -60,7 +77,8 @@ def pad_chars(instance, pad_to_max=-1):
         padded_chars = [F.pad(i, (0, pad_length - len(i)), value=255) if len(i) < pad_length else i[:pad_length] for i in chars]
 
     lengths = [len(i) for i in chars]
-    return torch.stack(padded_chars), torch.LongTensor(lengths), torch.stack(coords)
+
+    return bert_tokens, torch.stack(padded_chars), torch.LongTensor(lengths), torch.stack(coords)
 
 
 def subsample_datasets(train_dataset, val_dataset, ratio):
@@ -71,21 +89,25 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
     return train_dataset, val_dataset
 
 
-def train(batch, model, optimizer, criterion, device):
-    chars, lengths, coords = batch
-    pred = model(chars.to(device))
+def train(batch, model, optimizer, scheduler, criterion, device):
+    tokens, chars, lengths, coords = batch
+    if isinstance(model, BertModel):
+        pred = model(tokens.to(device))
+    else:
+        pred = model(chars.to(device))
 
     optimizer.zero_grad()
     loss = criterion(pred, coords.to(device))
     loss.backward()
     optimizer.step()
+    scheduler.step()
 
     return loss
 
 
 def evaluate(batch, model, criterion, device, generate=False):
-    chars, lengths, coords = batch
-    #check if batch dim squeezed out during pred, fix
+    tokens, chars, lengths, coords = batch
+    # check if batch dim squeezed out during pred, fix
     pred = model(chars.to(device))
     if len(pred.shape) == 1:
         pred = pred[None, :]
@@ -102,7 +124,7 @@ def evaluate(batch, model, criterion, device, generate=False):
     return loss, distance
 
 
-def split_users(df, percentage_users = 0.10):
+def split_users(df, percentage_users=0.10):
     users_ids = df.author_id
     users_ids = set(df.author_id)
     n_samples = int(len(users_ids)*percentage_users)
