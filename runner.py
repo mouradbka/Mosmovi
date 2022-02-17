@@ -30,6 +30,7 @@ def main():
     # model
     parser.add_argument('--loss', default='mse', choices=['mse', 'l1', 'smooth_l1'])
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'adamw', 'sgd'])
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=8)
     parser.add_argument('--scheduler', default='constant', choices=['linear', 'constant'])
     parser.add_argument('--warmup_ratio', default=0.2, type=float)
     parser.add_argument('--lr', type=float, default=1e-4)
@@ -74,8 +75,8 @@ def main():
     best_mean = 999999
     for epoch in range(args.num_epochs):
         model.train()
-        for batch in train_iter:
-            train_loss = utils.train(batch, model, optimizer, scheduler, criterion, device=device)
+        for i, batch in enumerate(train_iter):
+            train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion, args.gradient_accumulation_steps, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
 

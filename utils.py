@@ -89,7 +89,7 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
     return train_dataset, val_dataset
 
 
-def train(batch, model, optimizer, scheduler, criterion, device):
+def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, device):
     tokens, chars, lengths, coords = batch
     if isinstance(model, BertModel):
         pred = model(tokens.to(device))
@@ -99,8 +99,9 @@ def train(batch, model, optimizer, scheduler, criterion, device):
     optimizer.zero_grad()
     loss = criterion(pred, coords.to(device))
     loss.backward()
-    optimizer.step()
-    scheduler.step()
+    if (i + 1) % gradient_accumulation_steps == 0:
+        optimizer.step()
+        scheduler.step()
 
     return loss
 
