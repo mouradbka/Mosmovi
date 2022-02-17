@@ -7,6 +7,7 @@ from transformers import get_scheduler
 from argparse import ArgumentParser
 from loader import TweetDataset
 from torch.utils.data import DataLoader, Subset
+from transformers import BertTokenizer, ByT5Tokenizer
 from sklearn.model_selection import train_test_split, GroupKFold, GroupShuffleSplit, ShuffleSplit
 from models import *
 
@@ -57,8 +58,13 @@ def main():
     if args.subsample_ratio:
         train_dataset, val_dataset = utils.subsample_datasets(train_dataset, val_dataset, ratio=args.subsample_ratio)
 
-    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x, args.max_seq_len))
-    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=lambda x: utils.pad_chars(x, args.max_seq_len))
+    byte_tokenizer = ByT5Tokenizer.from_pretrained('google/byt5-small')
+    word_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+    tokenizers = (byte_tokenizer, word_tokenizer)
+
+    collate_fn = lambda instance: utils.pad_chars(instance, tokenizers, args.max_seq_len)
+    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=collate_fn)
+    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=collate_fn)
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 
