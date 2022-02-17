@@ -85,12 +85,10 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
     return train_dataset, val_dataset
 
 
-def train(batch, model, optimizer, scheduler, criterion, device):
+def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, device):
     byte_tokens, word_tokens, coords = batch
 
     pred = model(byte_tokens.to(device), word_tokens.to(device))
-    optimizer.zero_grad()
-    #optimizer.zero_grad()
     loss = criterion(pred, coords.to(device))
     loss.backward()
     if (i + 1) % gradient_accumulation_steps == 0:
