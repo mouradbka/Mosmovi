@@ -94,9 +94,9 @@ def train(batch, model, optimizer, scheduler, criterion, device):
     loss = criterion(pred, coords.to(device))
     loss.backward()
     if (i + 1) % gradient_accumulation_steps == 0:
-        optimizer.step()
-        scheduler.step()
-        optimizer.zero_grad()
+    	optimizer.step()
+    	scheduler.step()
+    	optimizer.zero_grad()
 
     return loss
 
