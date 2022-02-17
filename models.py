@@ -2,7 +2,7 @@ import logging
 import torch
 import torch.nn.functional as F
 from torch import nn
-from transformers import BertModel, T5Model
+from transformers import BertModel, T5EncoderModel
 
 from model_utils import *
 
@@ -247,10 +247,14 @@ class BertRegressor(nn.Module):
 
 
 class ByT5Regressor(nn.Module):
+    T5_HIDDEN_SIZE = 1472
+
     def __init__(self, args):
         super(ByT5Regressor, self).__init__()
-        self._model = T5Model.from_pretrained('google/byt5-small')
+        self._model = T5EncoderModel.from_pretrained('google/byt5-small')
+        self._head = nn.Linear(self.T5_HIDDEN_SIZE, 2)
 
     def forward(self, byte_tokens, word_tokens):
-        out = self._model(**byte_tokens)
-        return self._head(out.pooler_output)
+        output = self._model(**byte_tokens)
+        pooled_output = F.adaptive_max_pool1d(output.last_hidden_state.permute(0, 2, 1), output_size=1).squeeze()
+        return self._head(pooled_output)
