@@ -27,7 +27,7 @@ class CharLSTMModel(nn.Module):
         super(CharLSTMModel, self).__init__()
         self._token_embed = nn.Embedding(256, 150, 255)
         self._ffn = nn.Linear(300, 2)
-        self._lstm = nn.LSTM(150,150,2,bidirectional=True,batch_first=True)
+        self._lstm = nn.LSTM(150, 150, 2, bidirectional=True, batch_first=True)
 
     def forward(self, byte_tokens, word_tokens):
         input_ids = byte_tokens.input_ids
@@ -239,9 +239,11 @@ class BertRegressor(nn.Module):
     def __init__(self, args):
         super(BertRegressor, self).__init__()
         self._model = BertModel.from_pretrained('bert-base-multilingual-cased')
+        self._head = nn.Linear(self._model.config.hidden_size, 2)
 
     def forward(self, byte_tokens, word_tokens):
-        pass
+        out = self._model(**word_tokens)
+        return self._head(out.pooler_output)
 
 
 class ByT5Regressor(nn.Module):
@@ -250,4 +252,5 @@ class ByT5Regressor(nn.Module):
         self._model = T5Model.from_pretrained('google/byt5-small')
 
     def forward(self, byte_tokens, word_tokens):
-        pass
+        out = self._model(**byte_tokens)
+        return self._head(out.pooler_output)
