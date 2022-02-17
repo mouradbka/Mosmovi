@@ -26,7 +26,7 @@ def main():
     parser.add_argument('--save_prefix', default='model')
     # data
     parser.add_argument('--split_uids', action='store_true')
-    parser.add_argument('--max_seq_len', default=-1)
+    parser.add_argument('--max_seq_len', default=-1, type=int)
     parser.add_argument('--subsample_ratio', default=-1)
     # model
     parser.add_argument('--loss', default='mse', choices=['mse', 'l1', 'smooth_l1'])
