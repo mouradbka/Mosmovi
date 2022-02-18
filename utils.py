@@ -64,7 +64,7 @@ def pad_chars(instance, tokenizers, max_length=-1):
     tokens, coords = zip(*instance)
     byte_tokenizer, word_tokenizer = tokenizers
 
-    word_tokens = word_tokenizer(tokens, padding=True, return_tensors='pt')
+    word_tokens = word_tokenizer(tokens, padding=True, return_tensors='pt', truncation=True)
 
     if max_length == -1:
         byte_tokens = byte_tokenizer(tokens, padding=True, return_tensors='pt')

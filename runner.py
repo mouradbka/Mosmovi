@@ -59,7 +59,7 @@ def main():
         train_dataset, val_dataset = utils.subsample_datasets(train_dataset, val_dataset, ratio=args.subsample_ratio)
 
     byte_tokenizer = ByT5Tokenizer.from_pretrained('google/byt5-small')
-    word_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+    word_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased', model_max_length=512)
     tokenizers = (byte_tokenizer, word_tokenizer)
 
     collate_fn = lambda instance: utils.pad_chars(instance, tokenizers, args.max_seq_len)
