@@ -248,7 +248,7 @@ class BertRegressor(nn.Module):
         else:
             for l in range(args.freeze_layers):
                 for name, param in self._model.named_parameters():
-                    if name.startswith("mbert.encoder.layer." + str(l)):
+                    if name.startswith("encoder.layer." + str(l)):
                         param.requires_grad = False
 
     def forward(self, byte_tokens, word_tokens):
@@ -271,7 +271,7 @@ class ByT5Regressor(nn.Module):
         else:
             for l in range(args.freeze_layers):
                 for name, param in self._model.named_parameters():
-                    if name.startswith("byt5.encoder.layer." + str(l)):
+                    if name.startswith("encoder.block." + str(l)):
                         param.requires_grad = False
 
     def forward(self, byte_tokens, word_tokens):
