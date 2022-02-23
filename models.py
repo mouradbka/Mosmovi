@@ -240,6 +240,16 @@ class BertRegressor(nn.Module):
         super(BertRegressor, self).__init__()
         self._model = BertModel.from_pretrained('bert-base-multilingual-cased')
         self._head = nn.Linear(self._model.config.hidden_size, 2)
+        # freeze whole model
+        if args.freeze_layers == -1:
+            for param in self._model.parameters():
+                param.requires_grad = False
+        # freeze part of model
+        else:
+            for l in range(args.freeze_layers):
+                for name, param in self._model.named_parameters():
+                    if name.startswith("mbert.encoder.layer." + str(l)):
+                        param.requires_grad = False
 
     def forward(self, byte_tokens, word_tokens):
         out = self._model(**word_tokens)
@@ -253,6 +263,16 @@ class ByT5Regressor(nn.Module):
         super(ByT5Regressor, self).__init__()
         self._model = T5EncoderModel.from_pretrained('google/byt5-small')
         self._head = nn.Linear(self.T5_HIDDEN_SIZE, 2)
+        #freeze whole model
+        if args.freeze_layers == -1:
+            for param in self._model.parameters():
+                    param.requires_grad = False
+        #freeze part of model
+        else:
+            for l in range(args.freeze_layers):
+                for name, param in self._model.named_parameters():
+                    if name.startswith("byt5.encoder.layer." + str(l)):
+                        param.requires_grad = False
 
     def forward(self, byte_tokens, word_tokens):
         output = self._model(**byte_tokens)
