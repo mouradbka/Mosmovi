@@ -20,7 +20,6 @@ def get_arch(arch):
         'char_lstm': CharLSTMModel,
         'char_cnn': CharCNNModel,
         'char_lstm_cnn': CharLSTMCNNModel,
-        'char_transformer': TransformerModel,
         'bert': BertRegressor,
         'byt5': ByT5Regressor,
     }

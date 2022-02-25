@@ -20,7 +20,7 @@ def main():
     # script
     parser.add_argument('--data_dir', default='./data', action='store')
     parser.add_argument('--arch', default='char_pool',
-                        choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn', 'char_transformer',
+                        choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn',
                                  'bert', 'byt5'])
     parser.add_argument('--run_name', default=None)
     parser.add_argument('--save_prefix', default='model')
