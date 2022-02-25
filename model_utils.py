@@ -4,9 +4,9 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.distributions import Categorical
 import math
+import numpy as np
 
-
-ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
+ONEOVERSQRT2PI = 1.0 / np.sqrt(2.0*np.pi) # normalization factor for Gaussians
 
 
 class MDN(nn.Module):
@@ -65,8 +65,7 @@ def gaussian_probability(sigma, mu, target):
     """
     target = target.unsqueeze(1).expand_as(sigma)
     ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((target - mu) / sigma)**2) / sigma
-    return torch.prod(ret, 2)
-
+    return ret #torch.prod(ret, 2)
 
 def mdn_loss(pi, sigma, mu, target):
     """Calculates the error, given the MoG parameters and the target
@@ -76,6 +75,45 @@ def mdn_loss(pi, sigma, mu, target):
     prob = pi * gaussian_probability(sigma, mu, target)
     nll = -torch.log(torch.sum(prob, dim=1))
     return torch.mean(nll)
+
+def mdn_log_prob(pi, sigma, mu, y, temp=1):
+    log_component_prob = gaussian_probability(sigma, mu, y, log=True)
+    log_mix_prob = torch.log(
+            nn.functional.gumbel_softmax(
+                pi, tau=temp, dim=-1) + 1e-15)
+    return torch.logsumexp(log_component_prob + log_mix_prob, dim=-1)
+
+def calculate_loss(pi, sigma, mu, y):
+    # NLL Loss
+    log_prob = mdn_log_prob(pi, sigma, mu, y)
+    loss = torch.mean(-log_prob)
+    """
+    if self.hparams.mdn_config.weight_regularization is not None:
+        sigma_l1_reg = 0
+        pi_l1_reg = 0
+        mu_l1_reg = 0
+        if self.hparams.mdn_config.lambda_sigma > 0:
+            # Weight Regularization Sigma
+            sigma_params = torch.cat(
+                [x.view(-1) for x in self.mdn.sigma.parameters()]
+            )
+            sigma_l1_reg = self.hparams.mdn_config.lambda_sigma * torch.norm(
+                sigma_params, self.hparams.mdn_config.weight_regularization
+            )
+        if self.hparams.mdn_config.lambda_pi > 0:
+            pi_params = torch.cat([x.view(-1) for x in self.mdn.pi.parameters()])
+            pi_l1_reg = self.hparams.mdn_config.lambda_pi * torch.norm(
+                pi_params, self.hparams.mdn_config.weight_regularization
+            )
+        if self.hparams.mdn_config.lambda_mu > 0:
+            mu_params = torch.cat([x.view(-1) for x in self.mdn.mu.parameters()])
+            mu_l1_reg = self.hparams.mdn_config.lambda_mu * torch.norm(
+                mu_params, self.hparams.mdn_config.weight_regularization
+            )
+    """
+    loss = loss #+ sigma_l1_reg + pi_l1_reg + mu_l1_reg
+    return loss
+
 
 
 def sample(pi, sigma, mu):
