@@ -4,9 +4,9 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.distributions import Categorical
 import math
+import numpy as np
 
-
-ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
+ONEOVERSQRT2PI = 1.0 / np.sqrt(2.0*np.pi) # normalization factor for Gaussians
 
 
 class MDN(nn.Module):
@@ -48,7 +48,7 @@ class MDN(nn.Module):
         mu = mu.view(-1, self.num_gaussians, self.out_features)
         return pi, sigma, mu
 
-
+"""
 def gaussian_probability(sigma, mu, target):
     """Returns the probability of `target` given MoG parameters `sigma` and `mu`.
     Arguments:
@@ -66,7 +66,13 @@ def gaussian_probability(sigma, mu, target):
     target = target.unsqueeze(1).expand_as(sigma)
     ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((target - mu) / sigma)**2) / sigma
     return torch.prod(ret, 2)
+"""
 
+def gaussian_probability(sigma, mu, y):
+    # make |mu|=K copies of y, subtract mu, divide by sigma
+    result = (y.expand_as(mu) - mu) * torch.reciprocal(sigma)
+    result = -0.5 * (result * result)
+    return (torch.exp(result) * torch.reciprocal(sigma)) * ONEOVERSQRT2PI
 
 def mdn_loss(pi, sigma, mu, target):
     """Calculates the error, given the MoG parameters and the target
