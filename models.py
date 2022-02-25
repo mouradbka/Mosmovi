@@ -77,7 +77,10 @@ class CharCNNModel(nn.Module):
 
         self._fc1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
         self._fc2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Dropout(p=self.dropout))
-        self._fc3 = nn.Linear(64, 2)
+        if args.mdn:
+            self._fc3 = MDN(64, 2, 20)
+        else:
+            self._fc3 = nn.Linear(64, 2)
 
     def forward(self, byte_tokens, word_tokens):
         input_ids = byte_tokens.input_ids
@@ -141,7 +144,10 @@ class CharLSTMCNNModel(nn.Module):
 
         self._fc1 = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(p=self.dropout))
         self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
-        self._fc3 = nn.Linear(128, 2)
+        if args.mdn:
+            self._fc3 = MDN(128, 2, 20)
+        else:
+            self._fc3 = nn.Linear(128, 2)
 
     def forward(self, byte_tokens, word_tokens):
         input_ids = byte_tokens.input_ids
