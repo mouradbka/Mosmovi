@@ -20,7 +20,6 @@ def get_arch(arch):
         'char_lstm': CharLSTMModel,
         'char_cnn': CharCNNModel,
         'char_lstm_cnn': CharLSTMCNNModel,
-        'char_transformer': TransformerModel,
         'bert': BertRegressor,
         'byt5': ByT5Regressor,
     }
@@ -62,14 +61,15 @@ def gc_distance(gold, pred):
 
 
 def pad_chars(instance, tokenizers, max_length=-1):
-    tokens, coords = zip(*instance)
+    tokens, coords, metadata = zip(*instance)
     byte_tokenizer, word_tokenizer = tokenizers
+    tweet_time, author_time, author_desc = zip(*metadata)
 
     word_tokens = word_tokenizer(tokens, padding=True, return_tensors='pt', truncation=True)
 
     def tokenize_maybe_pad(tokenizer, tokens, length=7):
         tokenized = tokenizer(tokens, padding=True, return_tensors='pt')
-        if tokenized.input_ids.size(1) < 7:
+        if tokenized.input_ids.size(1) < length:
             tokenized = tokenizer(tokens, padding='max_length', max_length=length, return_tensors='pt')
         return tokenized
 
@@ -79,10 +79,10 @@ def pad_chars(instance, tokenizers, max_length=-1):
         byte_tokens = byte_tokenizer(tokens, truncation=True, padding='max_length', max_length=max_length,
                                      return_tensors='pt')
 
-    author_desc_bytes = tokenize_maybe_pad(byte_tokenizer, author_desc_bytest)
+    author_desc_bytes = tokenize_maybe_pad(byte_tokenizer, author_desc)
+    encoded_metadata = (torch.stack(tweet_time), torch.stack(author_time), author_desc_bytes)
 
-
-    return byte_tokens, word_tokens, torch.stack(coords)
+    return byte_tokens, word_tokens, torch.stack(coords), encoded_metadata
 
 
 def subsample_datasets(train_dataset, val_dataset, ratio):
