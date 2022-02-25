@@ -131,5 +131,35 @@ def sample(pi, sigma, mu):
     return (gaussian_noise * variance_samples + mean_samples).transpose(0, 1)
 
 
+def sample(pi, sigma, mu):
+    """Draw samples from a MoG."""
+    pis = Categorical(pi).sample().view(pi.size(0), 1, 1)
 
+    sample = Variable(sigma.data.new(sigma.size(0), 1).normal_())
+    # Gathering from the n Gaussian Distribution based on sampled indices
+    sample = sample * sigma.gather(1, pis) + mu.gather(1, pis)
+    return sample
 
+def generate_samples(pi, sigma, mu, n_samples=1000):
+    samples = []
+    softmax_pi = nn.functional.gumbel_softmax(
+        pi, tau=1.0, dim=-1
+    ).unsqueeze(-1).repeat(1,1,2)
+
+    assert (
+        softmax_pi < 0
+    ).sum().item() == 0, "pi parameter should not have negative"
+
+    for _ in range(n_samples):
+        samples.append(sample(softmax_pi, sigma, mu))
+    samples = torch.cat(samples, dim=1)
+    return samples
+
+def generate_point_predictions(self, pi, sigma, mu, n_samples=None):
+    # Sample using n_samples and take average
+    samples = self.generate_samples(pi, sigma, mu, n_samples)
+    #if central_tendency == "mean":
+    y_hat = torch.mean(samples, dim=-1)
+    #elif central_tendency == "median":
+    #y_hat = torch.median(samples, dim=-1).values
+    return y_hat.unsqueeze(1)
