@@ -8,6 +8,8 @@ import torch.nn.functional as F
 from torch import nn, optim
 from models import *
 from model_utils import mdn_loss
+from model_utils import sample as mdn_sample
+
 
 
 EARTH_RADIUS = 6372.8
@@ -97,7 +99,7 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     byte_tokens, word_tokens, coords = batch
     if mdn:
         pi, sigma, mu = model(byte_tokens.to(device), word_tokens.to(device))
-        loss = mdn.mdn_loss(pi, sigma, mu, coords.to(device))
+        loss = mdn_loss(pi, sigma, mu, coords.to(device))
     else:
         pred = model(byte_tokens.to(device), word_tokens.to(device))
         loss = criterion(pred, coords.to(device))
@@ -116,7 +118,7 @@ def evaluate(batch, model, criterion, mdn, device, generate=False):
     # check if batch dim squeezed out during pred, fix
     if mdn:
         pi, sigma, mu = model(byte_tokens.to(device), word_tokens.to(device))
-        samples = mdn.sample(pi, sigma, mu)
+        samples = mdn_sample(pi, sigma, mu)
         pred = torch.mean(samples, dim=-1)
     else:
         pred = model(byte_tokens.to(device), word_tokens.to(device))
