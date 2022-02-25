@@ -40,6 +40,8 @@ def main():
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--num_epochs', type=int, default=10)
     parser.add_argument('--freeze_layers', type=int, default=0)
+    parser.add_argument('--tweet_rbf_dim', type=int, default=50)
+    parser.add_argument('--author_rbf_dim', type=int, default=10)
     parser.add_argument('--mdn', action='store_true', default=False)
     args = parser.parse_args()
 
