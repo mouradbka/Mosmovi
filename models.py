@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch import nn
 from transformers import BertModel, T5EncoderModel
 
-from model_utils import *
+from model_utils import MDN
 
 logger = logging.getLogger()
 
@@ -164,84 +164,16 @@ class CharLSTMCNNModel(nn.Module):
         return x
 
 
-class TransformerLayer(nn.Module):
-    """Encoder is made up of self-attn and feed forward """
-    def __init__(self, size, self_attn, feed_forward, dropout,
-                 intermediate_layer_predictions=False, max_sequence_len=1024):
-        super(TransformerLayer, self).__init__()
-        self.self_attn = self_attn
-        self.feed_forward = feed_forward
-        self.sublayer = clones(SublayerConnection(size, dropout), 2)
-        self.add_positional_encoding = AddPositionalEncoding(size, max_sequence_len)
-        self.norm = self.sublayer[0].norm
-        self.size = size
-
-    def forward(self, x, mask):
-        x = self.add_positional_encoding(x)
-        x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask))
-        x = self.sublayer[1](x, self.feed_forward)
-        return x, None
-
-
-class TransformerEncoder(nn.Module):
-    """Core encoder is a stack of N layers"""
-    def __init__(self, layer, n_layers, intermediate_layer_predictions=False):
-        super(TransformerEncoder, self).__init__()
-        self.layers = clones(layer, n_layers)
-        # enforce a prediction for the last layer
-        self.layers[-1].force_prediction = True
-        self.norm = LayerNorm(layer.size)
-
-    def forward(self, x, mask):
-        for layer in self.layers:
-            x, prediction = layer(x, mask)
-        return x #self.norm(x)#, intermediate_predictions
-
-
-class TransformerModel(nn.Module):
-    def __init__(self, args, n_layers=4,
-                 hidden_size=128, inner_linear=256,
-                 n_heads=4, dropout=0.55,
-                 intermediate_layer_predictions=False):
-        super(TransformerModel, self).__init__()
-
-        attn = MultiHeadedAttention(n_heads, hidden_size, dropout)
-        ff = PositionwiseFeedForward(hidden_size, inner_linear, dropout)
-
-        self.encoder = TransformerEncoder(TransformerLayer(hidden_size, copy.deepcopy(attn), copy.deepcopy(ff),
-                                            dropout, intermediate_layer_predictions, #generator,
-                                            int(args.max_seq_len)),
-                               n_layers, intermediate_layer_predictions)
-
-        self._token_embed = nn.Embedding(256, 128, 255)
-        self._ffn = nn.Linear(128, 2)
-
-        # Initialize parameters with Glorot / fan_avg.
-        for p in self.parameters():
-             if p.dim() > 1:
-                 nn.init.xavier_uniform_(p)
-
-        self.intermediate_layer_predictions = intermediate_layer_predictions
-        self.n_layers = n_layers
-
-    def forward(self, byte_tokens, word_tokens):
-        input_ids = byte_tokens.input_ids
-        attention_mask = byte_tokens.attention_mask
-        """Take in and process masked src and target sequences."""
-        embeds = self._token_embed(input_ids)
-        x = self.encoder(embeds, attention_mask)
-        x = torch.mean(x, dim=1)
-
-        return self._ffn(x)
-
-
 class BertRegressor(nn.Module):
     def __init__(self, args):
         super(BertRegressor, self).__init__()
         self._model = BertModel.from_pretrained('bert-base-multilingual-cased')
         self._reduce = nn.Linear(self._model.config.hidden_size, 100)
         self._tanh = nn.Tanh()
-        self._head = nn.Linear(100, 2)
+        if args.mdn:
+            self._head = MDN(100, 2, 20)
+        else:
+            self._head = nn.Linear(100, 2)
         # freeze whole model
         if args.freeze_layers == -1:
             for param in self._model.parameters():
@@ -266,7 +198,10 @@ class ByT5Regressor(nn.Module):
         self._model = T5EncoderModel.from_pretrained('google/byt5-small')
         self._reduce = nn.Linear(self.T5_HIDDEN_SIZE, 100)
         self._tanh = nn.Tanh()
-        self._head = nn.Linear(100, 2)
+        if args.mdn:
+            self._head = MDN(100, 2, 20)
+        else:
+            self._head = nn.Linear(100, 2)
         #freeze whole model
         if args.freeze_layers == -1:
             for param in self._model.parameters():
@@ -277,7 +212,7 @@ class ByT5Regressor(nn.Module):
                 for name, param in self._model.named_parameters():
                     if name.startswith("encoder.block." + str(l)):
                         param.requires_grad = False
-
+e
     def forward(self, byte_tokens, word_tokens):
         output = self._model(**byte_tokens)
         pooled_output = F.adaptive_max_pool1d(output.last_hidden_state.permute(0, 2, 1), output_size=1).squeeze()

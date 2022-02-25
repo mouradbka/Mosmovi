@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 from torch import nn, optim
 from models import *
+from model_utils import mdn_loss
 
 
 EARTH_RADIUS = 6372.8
@@ -85,11 +86,14 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
     return train_dataset, val_dataset
 
 
-def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, device):
+def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, mdn, device):
     byte_tokens, word_tokens, coords = batch
-
-    pred = model(byte_tokens.to(device), word_tokens.to(device))
-    loss = criterion(pred, coords.to(device))
+    if mdn:
+        pi, sigma, mu = model(byte_tokens.to(device), word_tokens.to(device))
+        loss = mdn.mdn_loss(pi, sigma, mu, coords.to(device))
+    else:
+        pred = model(byte_tokens.to(device), word_tokens.to(device))
+        loss = criterion(pred, coords.to(device))
     loss.backward()
     if (i + 1) % gradient_accumulation_steps == 0:
         optimizer.step()
@@ -99,10 +103,15 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     return loss
 
 
-def evaluate(batch, model, criterion, device, generate=False):
+def evaluate(batch, model, criterion, mdn, device, generate=False):
     byte_tokens, word_tokens, coords = batch
     # check if batch dim squeezed out during pred, fix
-    pred = model(byte_tokens.to(device), word_tokens.to(device))
+    if mdn:
+        pi, sigma, mu = model(byte_tokens.to(device), word_tokens.to(device))
+        samples = mdn.sample(pi, sigma, mu)
+        pred = torch.mean(samples, dim=-1)
+    else:
+        pred = model(byte_tokens.to(device), word_tokens.to(device))
 
     if len(pred.shape) == 1:
         pred = pred[None, :]

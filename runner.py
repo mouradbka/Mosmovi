@@ -39,6 +39,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--num_epochs', type=int, default=10)
     parser.add_argument('--freeze_layers', type=int, default=0)
+    parser.add_argument('--mdn', action='store_true', default=False)
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -83,14 +84,14 @@ def main():
     for epoch in range(args.num_epochs):
         model.train()
         for i, batch in enumerate(train_iter):
-            train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion, args.gradient_accumulation_steps, device=device)
+            train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion, args.gradient_accumulation_steps, args.mdn, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
 
         with torch.no_grad():
             distances = []
             for batch in val_iter:
-                val_loss, val_distance = utils.evaluate(batch, model, criterion, device=device)
+                val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn, device=device)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
                 distances.extend(val_distance.tolist())
