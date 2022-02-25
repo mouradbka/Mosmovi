@@ -239,7 +239,9 @@ class BertRegressor(nn.Module):
     def __init__(self, args):
         super(BertRegressor, self).__init__()
         self._model = BertModel.from_pretrained('bert-base-multilingual-cased')
-        self._head = nn.Linear(self._model.config.hidden_size, 2)
+        self._reduce = nn.Linear(self._model.config.hidden_size, 100)
+        self._tanh = nn.Tanh()
+        self._head = nn.Linear(100, 2)
         # freeze whole model
         if args.freeze_layers == -1:
             for param in self._model.parameters():
@@ -253,7 +255,7 @@ class BertRegressor(nn.Module):
 
     def forward(self, byte_tokens, word_tokens):
         out = self._model(**word_tokens)
-        return self._head(out.pooler_output)
+        return self._head(self._tanh(self._reduce(out.pooler_output)))
 
 
 class ByT5Regressor(nn.Module):
@@ -262,7 +264,9 @@ class ByT5Regressor(nn.Module):
     def __init__(self, args):
         super(ByT5Regressor, self).__init__()
         self._model = T5EncoderModel.from_pretrained('google/byt5-small')
-        self._head = nn.Linear(self.T5_HIDDEN_SIZE, 2)
+        self._reduce = nn.Linear(self.T5_HIDDEN_SIZE, 100)
+        self._tanh = nn.Tanh()
+        self._head = nn.Linear(100, 2)
         #freeze whole model
         if args.freeze_layers == -1:
             for param in self._model.parameters():
@@ -277,4 +281,4 @@ class ByT5Regressor(nn.Module):
     def forward(self, byte_tokens, word_tokens):
         output = self._model(**byte_tokens)
         pooled_output = F.adaptive_max_pool1d(output.last_hidden_state.permute(0, 2, 1), output_size=1).squeeze()
-        return self._head(pooled_output)
+        return self._head(self._tanh(self._reduce(pooled_output)))
