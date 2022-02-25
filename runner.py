@@ -24,6 +24,7 @@ def main():
                                  'bert', 'byt5'])
     parser.add_argument('--run_name', default=None)
     parser.add_argument('--save_prefix', default='model')
+    parser.add_argument('--use_metadata', action='store_true')
     # data
     parser.add_argument('--split_uids', action='store_true')
     parser.add_argument('--max_seq_len', default=-1, type=int)
@@ -44,7 +45,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     wandb.init(project='mosmovi_1', config=args, name=args.run_name)
 
-    tweet_dataset = TweetDataset(data_dir=args.data_dir)
+    tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata)
 
     if args.split_uids:
         gss = GroupShuffleSplit(n_splits=1, train_size=0.9)

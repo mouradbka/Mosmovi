@@ -66,13 +66,20 @@ def pad_chars(instance, tokenizers, max_length=-1):
 
     word_tokens = word_tokenizer(tokens, padding=True, return_tensors='pt', truncation=True)
 
+    def tokenize_maybe_pad(tokenizer, tokens, length=7):
+        tokenized = tokenizer(tokens, padding=True, return_tensors='pt')
+        if tokenized.input_ids.size(1) < 7:
+            tokenized = tokenizer(tokens, padding='max_length', max_length=length, return_tensors='pt')
+        return tokenized
+
     if max_length == -1:
-        byte_tokens = byte_tokenizer(tokens, padding=True, return_tensors='pt')
-        if byte_tokens.input_ids.size(1) < 7:
-            byte_tokens = byte_tokenizer(tokens, padding='max_length', max_length=7, return_tensors='pt')
+        byte_tokens = tokenize_maybe_pad(byte_tokenizer, tokens)
     else:
         byte_tokens = byte_tokenizer(tokens, truncation=True, padding='max_length', max_length=max_length,
                                      return_tensors='pt')
+
+    author_desc_bytes = tokenize_maybe_pad(byte_tokenizer, author_desc_bytest)
+
 
     return byte_tokens, word_tokens, torch.stack(coords)
 
@@ -91,6 +98,7 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     pred = model(byte_tokens.to(device), word_tokens.to(device))
     loss = criterion(pred, coords.to(device))
     loss.backward()
+
     if (i + 1) % gradient_accumulation_steps == 0:
         optimizer.step()
         scheduler.step()
