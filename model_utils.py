@@ -48,25 +48,25 @@ class MDN(nn.Module):
         mu = mu.view(-1, self.num_gaussians, self.out_features)
         return pi, sigma, mu
 
-"""
-def gaussian_probability(sigma, mu, target):
-    """Returns the probability of `target` given MoG parameters `sigma` and `mu`.
-    Arguments:
-        sigma (BxGxO): The standard deviation of the Gaussians. B is the batch
-            size, G is the number of Gaussians, and O is the number of
-            dimensions per Gaussian.
-        mu (BxGxO): The means of the Gaussians. B is the batch size, G is the
-            number of Gaussians, and O is the number of dimensions per Gaussian.
-        target (BxI): A batch of target. B is the batch size and I is the number of
-            input dimensions.
-    Returns:
-        probabilities (BxG): The probability of each point in the probability
-            of the distribution in the corresponding sigma/mu index.
-    """
-    target = target.unsqueeze(1).expand_as(sigma)
-    ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((target - mu) / sigma)**2) / sigma
-    return torch.prod(ret, 2)
-"""
+
+#def gaussian_probability(sigma, mu, target):
+#    """Returns the probability of `target` given MoG parameters `sigma` and `mu`.
+#    Arguments:
+#        sigma (BxGxO): The standard deviation of the Gaussians. B is the batch
+#            size, G is the number of Gaussians, and O is the number of
+#            dimensions per Gaussian.
+#        mu (BxGxO): The means of the Gaussians. B is the batch size, G is the
+#            number of Gaussians, and O is the number of dimensions per Gaussian.
+#        target (BxI): A batch of target. B is the batch size and I is the number of
+#            input dimensions.
+#    Returns:
+#        probabilities (BxG): The probability of each point in the probability
+#            of the distribution in the corresponding sigma/mu index.
+#    """
+#    target = target.unsqueeze(1).expand_as(sigma)
+#    ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((target - mu) / sigma)**2) / sigma
+#    return torch.prod(ret, 2)
+
 
 def gaussian_probability(sigma, mu, y):
     # make |mu|=K copies of y, subtract mu, divide by sigma
