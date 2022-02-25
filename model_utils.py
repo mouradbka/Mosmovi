@@ -49,30 +49,24 @@ class MDN(nn.Module):
         return pi, sigma, mu
 
 
-#def gaussian_probability(sigma, mu, target):
-#    """Returns the probability of `target` given MoG parameters `sigma` and `mu`.
-#    Arguments:
-#        sigma (BxGxO): The standard deviation of the Gaussians. B is the batch
-#            size, G is the number of Gaussians, and O is the number of
-#            dimensions per Gaussian.
-#        mu (BxGxO): The means of the Gaussians. B is the batch size, G is the
-#            number of Gaussians, and O is the number of dimensions per Gaussian.
-#        target (BxI): A batch of target. B is the batch size and I is the number of
-#            input dimensions.
-#    Returns:
-#        probabilities (BxG): The probability of each point in the probability
-#            of the distribution in the corresponding sigma/mu index.
-#    """
-#    target = target.unsqueeze(1).expand_as(sigma)
-#    ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((target - mu) / sigma)**2) / sigma
-#    return torch.prod(ret, 2)
+def gaussian_probability(sigma, mu, target):
+    """Returns the probability of `target` given MoG parameters `sigma` and `mu`.
+    Arguments:
+        sigma (BxGxO): The standard deviation of the Gaussians. B is the batch
+            size, G is the number of Gaussians, and O is the number of
+            dimensions per Gaussian.
+        mu (BxGxO): The means of the Gaussians. B is the batch size, G is the
+            number of Gaussians, and O is the number of dimensions per Gaussian.
+        target (BxI): A batch of target. B is the batch size and I is the number of
+            input dimensions.
+    Returns:
+        probabilities (BxG): The probability of each point in the probability
+            of the distribution in the corresponding sigma/mu index.
+    """
+    target = target.unsqueeze(1).expand_as(sigma)
+    ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((target - mu) / sigma)**2) / sigma
+    return torch.mean(ret, 2)
 
-
-def gaussian_probability(sigma, mu, y):
-    # make |mu|=K copies of y, subtract mu, divide by sigma
-    result = (y.expand_as(mu) - mu) * torch.reciprocal(sigma)
-    result = -0.5 * (result * result)
-    return (torch.exp(result) * torch.reciprocal(sigma)) * ONEOVERSQRT2PI
 
 def mdn_loss(pi, sigma, mu, target):
     """Calculates the error, given the MoG parameters and the target
