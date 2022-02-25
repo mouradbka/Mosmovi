@@ -1,166 +1,97 @@
-import copy
-
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
 from torch.autograd import Variable
-
+from torch.distributions import Categorical
 import math
 
 
-def clones(module, N):
-    """Produce N identical layers."""
-    return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
+ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 
 
-class LayerNorm(nn.Module):
-    """Construct a layernorm module (See citation for details)."""
-    def __init__(self, features, eps=1e-6):
-        super(LayerNorm, self).__init__()
-        self.a_2 = nn.Parameter(torch.ones(features))
-        self.b_2 = nn.Parameter(torch.zeros(features))
-        self.eps = eps
-
-    def forward(self, x):
-        mean = x.mean(-1, keepdim=True)
-        std = x.std(-1, keepdim=True)
-        return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
-
-
-def attention(query, key, value, mask=None, dropout=None):
-    """Compute 'Scaled Dot Product Attention'"""
-    d_k = query.size(-1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) \
-             / math.sqrt(d_k)
-    if mask is not None:
-        scores = scores.masked_fill(mask == 0, -1e9)
-    p_attn = F.softmax(scores, dim=-1)
-    if dropout is not None:
-        p_attn = dropout(p_attn)
-    return torch.matmul(p_attn, value), p_attn
-
-
-class MultiHeadedAttention(nn.Module):
-    def __init__(self, h, d_model, dropout=0.1):
-        """Take in model size and number of heads."""
-        super(MultiHeadedAttention, self).__init__()
-        assert d_model % h == 0
-        # We assume d_v always equals d_k
-        self.d_k = d_model // h
-        self.h = h
-        self.linears = clones(nn.Linear(d_model, d_model), 4)
-        self.attn = None
-        self.dropout = nn.Dropout(p=dropout)
-
-    def forward(self, query, key, value, mask=None):
-        """Implements Figure 2"""
-        if mask is not None:
-            # Same mask applied to all h heads.
-            mask = mask.unsqueeze(1)
-        nbatches = query.size(0)
-
-        # 1) Do all the linear projections in batch from d_model => h x d_k
-        query, key, value = \
-            [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
-             for l, x in zip(self.linears, (query, key, value))]
-
-        # 2) Apply attention on all the projected vectors in batch.
-        x, self.attn = attention(query, key, value, mask=mask,
-                                 dropout=self.dropout)
-
-        # 3) "Concat" using a view and apply a final linear.
-        x = x.transpose(1, 2).contiguous() \
-            .view(nbatches, -1, self.h * self.d_k)
-        return self.linears[-1](x)
-
-
-class SublayerConnection(nn.Module):
+class MDN(nn.Module):
+    """A mixture density network layer
+    The input maps to the parameters of a MoG probability distribution, where
+    each Gaussian has O dimensions and diagonal covariance.
+    Arguments:
+        in_features (int): the number of dimensions in the input
+        out_features (int): the number of dimensions in the output
+        num_gaussians (int): the number of Gaussians per output dimensions
+    Input:
+        minibatch (BxD): B is the batch size and D is the number of input
+            dimensions.
+    Output:
+        (pi, sigma, mu) (BxG, BxGxO, BxGxO): B is the batch size, G is the
+            number of Gaussians, and O is the number of dimensions for each
+            Gaussian. Pi is a multinomial distribution of the Gaussians. Sigma
+            is the standard deviation of each Gaussian. Mu is the mean of each
+            Gaussian.
     """
-    A residual connection followed by a layer norm.
-    Note for code simplicity the norm is first as opposed to last.
+
+    def __init__(self, in_features, out_features, num_gaussians):
+        super(MDN, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.num_gaussians = num_gaussians
+        self.pi = nn.Sequential(
+            nn.Linear(in_features, num_gaussians),
+            nn.Softmax(dim=1)
+        )
+        self.sigma = nn.Linear(in_features, out_features * num_gaussians)
+        self.mu = nn.Linear(in_features, out_features * num_gaussians)
+
+    def forward(self, minibatch):
+        pi = self.pi(minibatch)
+        sigma = torch.exp(self.sigma(minibatch))
+        sigma = sigma.view(-1, self.num_gaussians, self.out_features)
+        mu = self.mu(minibatch)
+        mu = mu.view(-1, self.num_gaussians, self.out_features)
+        return pi, sigma, mu
+
+
+def gaussian_probability(sigma, mu, target):
+    """Returns the probability of `target` given MoG parameters `sigma` and `mu`.
+    Arguments:
+        sigma (BxGxO): The standard deviation of the Gaussians. B is the batch
+            size, G is the number of Gaussians, and O is the number of
+            dimensions per Gaussian.
+        mu (BxGxO): The means of the Gaussians. B is the batch size, G is the
+            number of Gaussians, and O is the number of dimensions per Gaussian.
+        target (BxI): A batch of target. B is the batch size and I is the number of
+            input dimensions.
+    Returns:
+        probabilities (BxG): The probability of each point in the probability
+            of the distribution in the corresponding sigma/mu index.
     """
-    def __init__(self, size, dropout):
-        super(SublayerConnection, self).__init__()
-        self.norm = LayerNorm(size)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x, sublayer):
-        "Apply residual connection to any sublayer with the same size."
-        return x + self.dropout(sublayer(self.norm(x)))
+    target = target.unsqueeze(1).expand_as(sigma)
+    ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((target - mu) / sigma)**2) / sigma
+    return torch.prod(ret, 2)
 
 
-def subsequent_mask(size):
-    """Mask out subsequent positions."""
-    attn_shape = (1, size, size)
-    subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
-    return torch.from_numpy(subsequent_mask) == 0
+def mdn_loss(pi, sigma, mu, target):
+    """Calculates the error, given the MoG parameters and the target
+    The loss is the negative log likelihood of the data given the MoG
+    parameters.
+    """
+    prob = pi * gaussian_probability(sigma, mu, target)
+    nll = -torch.log(torch.sum(prob, dim=1))
+    return torch.mean(nll)
 
 
-class PositionwiseFeedForward(nn.Module):
-    """Implements FFN equation."""
-
-    def __init__(self, d_model, d_ff, dropout=0.1):
-        super(PositionwiseFeedForward, self).__init__()
-        self.w_1 = nn.Linear(d_model, d_ff)
-        self.w_2 = nn.Linear(d_ff, d_model)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        return self.w_2(self.dropout(F.relu(self.w_1(x))))
-
-
-class Generator(nn.Module):
-    """Define standard linear + softmax generation step."""
-    def __init__(self, hidden_size, vocab):
-        super(Generator, self).__init__()
-        self.proj = nn.Linear(hidden_size, vocab)
-
-    def forward(self, x):
-        return F.log_softmax(self.proj(x), dim=-1)
+def sample(pi, sigma, mu):
+    """Draw samples from a MoG.
+    """
+    # Choose which gaussian we'll sample from
+    pis = Categorical(pi).sample().view(pi.size(0), 1, 1)
+    # Choose a random sample, one randn for batch X output dims
+    # Do a (output dims)X(batch size) tensor here, so the broadcast works in
+    # the next step, but we have to transpose back.
+    gaussian_noise = torch.randn(
+        (sigma.size(2), sigma.size(0)), requires_grad=False)
+    variance_samples = sigma.gather(1, pis).detach().squeeze()
+    mean_samples = mu.detach().gather(1, pis).squeeze()
+    return (gaussian_noise * variance_samples + mean_samples).transpose(0, 1)
 
 
-class Embeddings(nn.Module):
-    def __init__(self, d_model, vocab):
-        super(Embeddings, self).__init__()
-        self.lut = nn.Embedding(vocab, d_model)
-        self.d_model = d_model
-
-    def forward(self, x):
-        return self.lut(x) * math.sqrt(self.d_model)
 
 
-class PositionalEncoding(nn.Module):
-    """Implement the PE function."""
-
-    def __init__(self, d_model, dropout, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        # Compute the positional encodings once in log space.
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) *
-                             -(math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + Variable(self.pe[:, :x.size(1)],
-                         requires_grad=False)
-        return self.dropout(x)
-
-
-class AddPositionalEncoding(nn.Module):
-    def __init__(self, hidden_size, max_sequence_length):
-        super(AddPositionalEncoding, self).__init__()
-        self.hidden_size = hidden_size
-        self.max_sequence_length = max_sequence_length
-        self.positional_encoding = nn.Parameter(torch.empty(max_sequence_length, hidden_size))
-        nn.init.normal_(self.positional_encoding)
-
-    def forward(self, x):
-        seq_len = x.size(1)
-        return x + self.positional_encoding[:seq_len]
