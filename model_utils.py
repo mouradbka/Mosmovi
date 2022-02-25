@@ -77,10 +77,10 @@ def gaussian_probability(sigma, mu, target):
 #    return torch.mean(nll)
 
 def mdn_log_prob(pi, sigma, mu, y, temp=1):
-    log_component_prob = gaussian_probability(sigma, mu, y, log=True)
+    log_component_prob = gaussian_probability(sigma, mu, y)
     log_mix_prob = torch.log(
             nn.functional.gumbel_softmax(
-                pi, tau=temp, dim=-1) + 1e-15)
+                pi, tau=temp, dim=1) + 1e-15).unsqueeze(-1).repeat(1,1,2)
     return torch.logsumexp(log_component_prob + log_mix_prob, dim=-1)
 
 def mdn_loss(pi, sigma, mu, y):

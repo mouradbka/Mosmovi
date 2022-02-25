@@ -78,7 +78,7 @@ class CharCNNModel(nn.Module):
         self._fc1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
         self._fc2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Dropout(p=self.dropout))
         if args.mdn:
-            self._fc3 = MDN(64, 2, 20)
+            self._fc3 = MDN(64, 2, 10)
         else:
             self._fc3 = nn.Linear(64, 2)
 
@@ -145,7 +145,7 @@ class CharLSTMCNNModel(nn.Module):
         self._fc1 = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(p=self.dropout))
         self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
         if args.mdn:
-            self._fc3 = MDN(128, 2, 20)
+            self._fc3 = MDN(128, 2, 10)
         else:
             self._fc3 = nn.Linear(128, 2)
 
@@ -177,7 +177,7 @@ class BertRegressor(nn.Module):
         self._reduce = nn.Linear(self._model.config.hidden_size, 100)
         self._tanh = nn.Tanh()
         if args.mdn:
-            self._head = MDN(100, 2, 20)
+            self._head = MDN(100, 2, 10)
         else:
             self._head = nn.Linear(100, 2)
         # freeze whole model
@@ -205,7 +205,7 @@ class ByT5Regressor(nn.Module):
         self._reduce = nn.Linear(self.T5_HIDDEN_SIZE, 100)
         self._tanh = nn.Tanh()
         if args.mdn:
-            self._head = MDN(100, 2, 20)
+            self._head = MDN(100, 2, 10)
         else:
             self._head = nn.Linear(100, 2)
         #freeze whole model
