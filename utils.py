@@ -22,8 +22,8 @@ def get_arch(arch):
         'char_lstm': CharLSTMModel,
         'char_cnn': CharCNNModel,
         'char_lstm_cnn': CharLSTMCNNModel,
-        'bert': BertRegressor,
-        'byt5': ByT5Regressor,
+        'bert': CompositeModel,
+        'byt5': CompositeModel,
     }
     return archs[arch]
 
@@ -63,20 +63,34 @@ def gc_distance(gold, pred):
 
 
 def pad_chars(instance, tokenizers, max_length=-1):
-    tokens, coords = zip(*instance)
+    tokens, coords, metadata = zip(*instance)
     byte_tokenizer, word_tokenizer = tokenizers
 
     word_tokens = word_tokenizer(tokens, padding=True, return_tensors='pt', truncation=True)
 
+    def tokenize_maybe_pad(tokenizer, tokens, length=7):
+        tokenized = tokenizer(tokens, padding=True, return_tensors='pt')
+        if tokenized.input_ids.size(1) < length:
+            tokenized = tokenizer(tokens, padding='max_length', max_length=length, return_tensors='pt')
+        return tokenized
+
     if max_length == -1:
-        byte_tokens = byte_tokenizer(tokens, padding=True, return_tensors='pt')
-        if byte_tokens.input_ids.size(1) < 7:
-            byte_tokens = byte_tokenizer(tokens, padding='max_length', max_length=7, return_tensors='pt')
+        byte_tokens = tokenize_maybe_pad(byte_tokenizer, tokens)
     else:
         byte_tokens = byte_tokenizer(tokens, truncation=True, padding='max_length', max_length=max_length,
                                      return_tensors='pt')
 
-    return byte_tokens, word_tokens, torch.stack(coords)
+    if None not in metadata:
+        tweet_time, author_time, author_desc = zip(*metadata)
+        author_desc_bytes = tokenize_maybe_pad(byte_tokenizer, author_desc)
+        encoded_metadata = (torch.stack(tweet_time), torch.stack(author_time), author_desc_bytes)
+    else:
+        encoded_metadata = None
+
+    encoded_tokens = (byte_tokens, word_tokens)
+    encoded_coords = torch.stack(coords)
+
+    return encoded_tokens, encoded_coords, encoded_metadata
 
 
 def subsample_datasets(train_dataset, val_dataset, ratio):
@@ -88,13 +102,21 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
 
 
 def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, mdn, device):
-    byte_tokens, word_tokens, coords = batch
+    encoded_tokens, coords, encoded_metadata = batch
+    encoded_tokens = [i.to(device) for i in encoded_tokens]
+    coords = coords.to(device)
+    if encoded_metadata is not None:
+        encoded_metadata = [i.to(device) for i in encoded_metadata]
+
+    byte_tokens, word_tokens = encoded_tokens
+
     if mdn:
-        pi, sigma, mu = model(byte_tokens.to(device), word_tokens.to(device))
-        loss = mdn_loss(pi, sigma, mu, coords.to(device))
+        pi, sigma, mu = model(byte_tokens, word_tokens, encoded_metadata)
+        loss = mdn_loss(pi, sigma, mu, coords)
     else:
-        pred = model(byte_tokens.to(device), word_tokens.to(device))
-        loss = criterion(pred, coords.to(device))
+        pred = model(byte_tokens, word_tokens, encoded_metadata)
+        loss = criterion(pred, coords)
+
     loss.backward()
     if (i + 1) % gradient_accumulation_steps == 0:
         optimizer.step()
@@ -105,18 +127,25 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
 
 
 def evaluate(batch, model, criterion, mdn, device, generate=False):
-    byte_tokens, word_tokens, coords = batch
+    encoded_tokens, coords, encoded_metadata = batch
+    encoded_tokens = [i.to(device) for i in encoded_tokens]
+    coords = coords.to(device)
+    if encoded_metadata is not None:
+        encoded_metadata = [i.to(device) for i in encoded_metadata]
+
+    byte_tokens, word_tokens = encoded_tokens
+
     # check if batch dim squeezed out during pred, fix
     if mdn:
-        pi, sigma, mu = model(byte_tokens.to(device), word_tokens.to(device))
+        pi, sigma, mu = model(byte_tokens, word_tokens, encoded_metadata)
         samples = mdn_sample(pi, sigma, mu)
         pred = torch.mean(samples, dim=-1)
     else:
-        pred = model(byte_tokens.to(device), word_tokens.to(device))
+        pred = model(byte_tokens, word_tokens, encoded_metadata)
 
     if len(pred.shape) == 1:
         pred = pred[None, :]
-    loss = criterion(pred, coords.to(device))
+    loss = criterion(pred, coords)
     distance = gc_distance(coords, pred)
 
     if generate:

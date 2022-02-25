@@ -1,6 +1,8 @@
 import logging
 import torch
 import torch.nn.functional as F
+import numpy as np
+
 from torch import nn
 from transformers import BertModel, T5EncoderModel
 
@@ -82,7 +84,7 @@ class CharCNNModel(nn.Module):
         else:
             self._fc3 = nn.Linear(64, 2)
 
-    def forward(self, byte_tokens, word_tokens):
+    def forward(self, byte_tokens, word_tokens, features_only=False):
         input_ids = byte_tokens.input_ids
         x = self._token_embed(input_ids)
         # transpose
@@ -97,6 +99,8 @@ class CharCNNModel(nn.Module):
         x = self._fc1(x)
         # linear layer
         x = self._fc2(x)
+        if features_only:
+            return x
         # final linear layer
         x = self._fc3(x)
         return x
@@ -170,20 +174,25 @@ class CharLSTMCNNModel(nn.Module):
         return x
 
 
+class RBFLayer(nn.Module):
+    def __init__(self, encoding_dim):
+        super(RBFLayer, self).__init__()
+        self.mu = nn.parameter.Parameter(torch.FloatTensor(range(encoding_dim)) / encoding_dim)
+        self.sigma = nn.parameter.Parameter(torch.ones(encoding_dim) * np.sqrt(0.5 / encoding_dim))
+
+    def forward(self, time):
+        return torch.exp((-(time - self.mu) ** 2) / (2 * (self.sigma ** 2)))
+
+
 class BertRegressor(nn.Module):
     def __init__(self, args):
         super(BertRegressor, self).__init__()
         self._model = BertModel.from_pretrained('bert-base-multilingual-cased')
-        self._reduce = nn.Linear(self._model.config.hidden_size, 100)
-        self._tanh = nn.Tanh()
-        if args.mdn:
-            self._head = MDN(100, 2, 10)
-        else:
-            self._head = nn.Linear(100, 2)
         # freeze whole model
         if args.freeze_layers == -1:
             for param in self._model.parameters():
                 param.requires_grad = False
+
         # freeze part of model
         else:
             for l in range(args.freeze_layers):
@@ -192,27 +201,18 @@ class BertRegressor(nn.Module):
                         param.requires_grad = False
 
     def forward(self, byte_tokens, word_tokens):
-        out = self._model(**word_tokens)
-        return self._head(self._tanh(self._reduce(out.pooler_output)))
+        return self._model(**word_tokens).pooler_output
 
 
 class ByT5Regressor(nn.Module):
-    T5_HIDDEN_SIZE = 1472
-
     def __init__(self, args):
         super(ByT5Regressor, self).__init__()
         self._model = T5EncoderModel.from_pretrained('google/byt5-small')
-        self._reduce = nn.Linear(self.T5_HIDDEN_SIZE, 100)
-        self._tanh = nn.Tanh()
-        if args.mdn:
-            self._head = MDN(100, 2, 10)
-        else:
-            self._head = nn.Linear(100, 2)
-        #freeze whole model
+        # freeze whole model
         if args.freeze_layers == -1:
             for param in self._model.parameters():
                     param.requires_grad = False
-        #freeze part of model
+        # freeze part of model
         else:
             for l in range(args.freeze_layers):
                 for name, param in self._model.named_parameters():
@@ -221,5 +221,46 @@ class ByT5Regressor(nn.Module):
 
     def forward(self, byte_tokens, word_tokens):
         output = self._model(**byte_tokens)
-        pooled_output = F.adaptive_max_pool1d(output.last_hidden_state.permute(0, 2, 1), output_size=1).squeeze()
-        return self._head(self._tanh(self._reduce(pooled_output)))
+        return F.adaptive_max_pool1d(output.last_hidden_state.permute(0, 2, 1), output_size=1).squeeze()
+
+
+class CompositeModel(nn.Module):
+    T5_HIDDEN_SIZE = 1472
+
+    def __init__(self, args):
+        super(CompositeModel, self).__init__()
+
+        self.use_metadata = args.use_metadata
+        if args.arch == 'bert':
+            self._encoder = BertRegressor(args)
+            concat_dim = self._encoder._model.config.hidden_size
+        elif args.arch == 'byt5':
+            self._encoder = ByT5Regressor(args)
+            concat_dim = self.T5_HIDDEN_SIZE
+
+        if args.use_metadata:
+            self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
+            self._author_rbf = RBFLayer(encoding_dim=args.author_rbf_dim)
+            self._description_cnn = CharCNNModel(args)
+            concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + self._description_cnn._fc2[0].out_features
+
+        self._reduce = nn.Linear(concat_dim, 100)
+        if args.mdn:
+            self._head = MDN(100, 2, 20)
+        else:
+            self._head = nn.Linear(100, 2)
+
+    def forward(self, byte_tokens, word_tokens, metadata):
+        text_encoding = self._encoder(byte_tokens, word_tokens)
+        if self.use_metadata:
+            tweet_time, author_time, author_desc = metadata
+            encoded_tweet_time = self._tweet_rbf(tweet_time)
+            encoded_author_time = self._author_rbf(author_time)
+            encoded_desc = self._description_cnn(author_desc, None, features_only=True)
+            concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
+        else:
+            concat = text_encoding
+
+        return self._head(F.tanh(self._reduce(F.dropout(concat, p=0.2))))
+
+
