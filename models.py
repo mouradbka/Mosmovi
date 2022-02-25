@@ -218,7 +218,7 @@ class ByT5Regressor(nn.Module):
                 for name, param in self._model.named_parameters():
                     if name.startswith("encoder.block." + str(l)):
                         param.requires_grad = False
-e
+
     def forward(self, byte_tokens, word_tokens):
         output = self._model(**byte_tokens)
         pooled_output = F.adaptive_max_pool1d(output.last_hidden_state.permute(0, 2, 1), output_size=1).squeeze()
