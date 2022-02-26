@@ -92,6 +92,7 @@ def main():
             wandb.log({"train_loss": train_loss.item()})
 
         with torch.no_grad():
+            model.eval()
             distances = []
             for batch in val_iter:
                 val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn, device=device)

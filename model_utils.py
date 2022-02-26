@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from torch.autograd import Variable
 from torch.distributions import Categorical
-import math
 import numpy as np
 
 ONEOVERSQRT2PI = 1.0 / np.sqrt(2.0*np.pi) # normalization factor for Gaussians
