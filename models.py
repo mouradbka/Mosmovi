@@ -241,7 +241,7 @@ class CompositeModel(nn.Module):
             self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
             self._author_rbf = RBFLayer(encoding_dim=args.author_rbf_dim)
             self._description_lstm = CharLSTMModel(args)
-            concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + self._description_lstm._lstm[0].out_features
+            concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + self._description_lstm._lstm.out_features
 
         self._reduce = nn.Linear(concat_dim, 100)
         if args.mdn:
