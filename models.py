@@ -27,9 +27,9 @@ class CharModel(nn.Module):
 class CharLSTMModel(nn.Module):
     def __init__(self, args):
         super(CharLSTMModel, self).__init__()
-        self._token_embed = nn.Embedding(256, 75, 255)
-        self._ffn = nn.Linear(150, 2)
-        self._lstm = nn.LSTM(75, 75, 2, bidirectional=True, batch_first=True)
+        self._token_embed = nn.Embedding(256, 50, 255)
+        self._ffn = nn.Linear(100, 2)
+        self._lstm = nn.LSTM(50, 50, 2, bidirectional=True, batch_first=True)
 
     def forward(self, byte_tokens, word_tokens, features_only=False):
         input_ids = byte_tokens.input_ids
@@ -243,7 +243,7 @@ class CompositeModel(nn.Module):
             self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
             self._author_rbf = RBFLayer(encoding_dim=args.author_rbf_dim)
             self._description_lstm = CharLSTMModel(args)
-            concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + self._description_lstm._lstm.hidden_size
+            concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
 
         self._reduce = nn.Linear(concat_dim, 100)
         if args.mdn:
