@@ -27,15 +27,17 @@ class CharModel(nn.Module):
 class CharLSTMModel(nn.Module):
     def __init__(self, args):
         super(CharLSTMModel, self).__init__()
-        self._token_embed = nn.Embedding(256, 150, 255)
-        self._ffn = nn.Linear(300, 2)
-        self._lstm = nn.LSTM(150, 150, 2, bidirectional=True, batch_first=True)
+        self._token_embed = nn.Embedding(256, 75, 255)
+        self._ffn = nn.Linear(150, 2)
+        self._lstm = nn.LSTM(75, 75, 2, bidirectional=True, batch_first=True)
 
-    def forward(self, byte_tokens, word_tokens):
+    def forward(self, byte_tokens, word_tokens, features_only=False):
         input_ids = byte_tokens.input_ids
         embed = self._token_embed(input_ids)
         context_embeds = self._lstm(embed)[0]
         pool = torch.mean(context_embeds, dim=1)
+        if features_only:
+            return pool
         return self._ffn(pool)
 
 
@@ -255,7 +257,7 @@ class CompositeModel(nn.Module):
             tweet_time, author_time, author_desc = metadata
             encoded_tweet_time = self._tweet_rbf(tweet_time)
             encoded_author_time = self._author_rbf(author_time)
-            encoded_desc = self._description_cnn(author_desc, None, features_only=True)
+            encoded_desc = self._description_lstm(author_desc, None, features_only=True)
             concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
         else:
             concat = text_encoding
