@@ -105,6 +105,48 @@ class CharCNNModel(nn.Module):
         x = self._fc3(x)
         return x
 
+class SmallCharCNNModel(nn.Module):
+    def __init__(self, args):
+        super(SmallCharCNNModel, self).__init__()
+        self._token_embed = nn.Embedding(256, 150, 255)
+
+        self._conv1 = nn.Sequential(
+            nn.Conv1d(150, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=3, stride=3, padding=1)
+        )
+        self._conv2 = nn.Sequential(
+            nn.Conv1d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU()
+        )
+        self._conv3 = nn.Sequential(
+            nn.Conv1d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU()
+        )
+
+        if hasattr(args, 'dropout'):
+            self.dropout = args.dropout
+        else:
+            self.dropout = 0.0
+
+        self._fc1 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Dropout(p=self.dropout))
+        self._fc2 = nn.Sequential(nn.Linear(62, 2), nn.ReLU(), nn.Dropout(p=self.dropout))
+
+    def forward(self, byte_tokens, word_tokens, features_only=False):
+        input_ids = byte_tokens.input_ids
+        x = self._token_embed(input_ids)
+        # transpose
+        x = x.permute(0, 2, 1)
+        x = self._conv1(x)
+        x = self._conv2(x)
+        x = self._conv3(x).squeeze()
+        # linear layer
+        x = self._fc1(x)
+        if features_only:
+            return x
+        # linear layer
+        x = self._fc2(x)
+        return x
 
 class CharLSTMCNNModel(nn.Module):
     def __init__(self, args):
@@ -241,7 +283,7 @@ class CompositeModel(nn.Module):
         if args.use_metadata:
             self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
             self._author_rbf = RBFLayer(encoding_dim=args.author_rbf_dim)
-            self._description_cnn = CharCNNModel(args)
+            self._description_cnn = SmallCharCNNModel(args)
             concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + self._description_cnn._fc2[0].out_features
 
         self._reduce = nn.Linear(concat_dim, 100)
@@ -261,6 +303,6 @@ class CompositeModel(nn.Module):
         else:
             concat = text_encoding
 
-        return self._head(F.tanh(self._reduce(F.dropout(concat, p=0.2))))
+        return self._head((self._reduce(F.dropout(concat, p=0.2))))
 
 
