@@ -6,7 +6,7 @@ import numpy as np
 from torch import nn
 from transformers import BertModel, T5EncoderModel
 
-from model_utils import MDN
+from model_utils import *
 
 logger = logging.getLogger()
 
@@ -178,7 +178,7 @@ class CharLSTMCNNModel(nn.Module):
 class RBFLayer(nn.Module):
     def __init__(self, encoding_dim):
         super(RBFLayer, self).__init__()
-        self.mu = nn.parameter.Parameter(torch.FloatTensor(range(encoding_dim)) / encoding_dim)
+        self.rbf = nn.parameter.Parameter(torch.FloatTensor(range(encoding_dim)) / encoding_dim)
         self.sigma = nn.parameter.Parameter(torch.ones(encoding_dim) * np.sqrt(0.5 / encoding_dim))
 
     def forward(self, time):
@@ -240,8 +240,8 @@ class CompositeModel(nn.Module):
             concat_dim = self.T5_HIDDEN_SIZE
 
         if args.use_metadata:
-            self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
-            self._author_rbf = RBFLayer(encoding_dim=args.author_rbf_dim)
+            self._tweet_rbf = nn.Linear(1, args.tweet_rbf_dim) #RBFLayer(encoding_dim=args.tweet_rbf_dim)
+            self._author_rbf = nn.Linear(1, args.author_rbf_dim) #RBFLayer(encoding_dim=args.author_rbf_dim)
             self._description_lstm = CharLSTMModel(args)
             concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
 
