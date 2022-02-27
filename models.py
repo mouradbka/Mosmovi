@@ -129,15 +129,6 @@ class CharLSTMCNNModel(nn.Module):
         )
         self._conv4 = nn.Sequential(
             nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU()
-        )
-        self._conv5 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.AdaptiveMaxPool1d(output_size=1)
-        )
-        self._conv6 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1),
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(output_size=1)
         )
@@ -147,12 +138,11 @@ class CharLSTMCNNModel(nn.Module):
         else:
             self.dropout = 0.0
 
-        self._fc1 = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(p=self.dropout))
-        self._fc2 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
+        self._fc1 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
         if args.mdn:
-            self._fc3 = MDN(128, 2, 10)
+            self._fc2 = MDN(128, 2, 10)
         else:
-            self._fc3 = nn.Linear(128, 2)
+            self._fc2 = nn.Linear(128, 2)
 
     def forward(self, byte_tokens, word_tokens):
         input_ids = byte_tokens.input_ids
@@ -163,15 +153,11 @@ class CharLSTMCNNModel(nn.Module):
         x = self._conv1(x)
         x = self._conv2(x)
         x = self._conv3(x)
-        x = self._conv4(x)
-        x = self._conv5(x)
-        x = self._conv6(x).squeeze()
+        x = self._conv4(x).squeeze()
         # linear layer
         x = self._fc1(x)
-        # linear layer
-        x = self._fc2(x)
         # final linear layer
-        x = self._fc3(x)
+        x = self._fc2(x)
         return x
 
 
