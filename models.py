@@ -161,14 +161,36 @@ class CharLSTMCNNModel(nn.Module):
         return x
 
 
-class RBFLayer(nn.Module):
+class RBFLayerOld(nn.Module):
     def __init__(self, encoding_dim):
-        super(RBFLayer, self).__init__()
-        self.rbf = nn.parameter.Parameter(torch.FloatTensor(range(encoding_dim)) / encoding_dim)
-        self.sigma = nn.parameter.Parameter(torch.ones(encoding_dim) * np.sqrt(0.5 / encoding_dim))
+        super(RBFLayerOld, self).__init__()
+        self.rbf = nn.Parameter(torch.FloatTensor(range(encoding_dim)) / encoding_dim)
+        self.sigma = nn.Parameter(torch.ones(encoding_dim) * np.sqrt(0.5 / encoding_dim))
 
     def forward(self, time):
         return torch.exp((-(time - self.mu) ** 2) / (2 * (self.sigma ** 2)))
+
+
+class RBFLayer(nn.Module):
+    def __init__(self, encoding_dim):
+        super(RBFLayer, self).__init__()
+        self.in_features = 1
+        self.out_features = encoding_dim
+        self.centres = nn.Parameter(torch.Tensor(self.out_features, self.in_features))
+        self.log_sigmas = nn.Parameter(torch.Tensor(self.out_features))
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.normal_(self.centres, 0, 1)
+        nn.init.constant_(self.log_sigmas, 0)
+
+    def forward(self, time):
+        size = (time.size(0), self.out_features, self.in_features)
+        x = time.unsqueeze(1).expand(size)
+        c = self.centres.unsqueeze(0).expand(size)
+        distances = (x - c).pow(2).sum(-1).pow(0.5) / torch.exp(self.log_sigmas).unsqueeze(0)
+        phi = torch.exp(-1 * distances.pow(2))
+        return phi
 
 
 class BertRegressor(nn.Module):
@@ -226,8 +248,8 @@ class CompositeModel(nn.Module):
             concat_dim = self.T5_HIDDEN_SIZE
 
         if args.use_metadata:
-            self._tweet_rbf = nn.Linear(1, args.tweet_rbf_dim) #RBFLayer(encoding_dim=args.tweet_rbf_dim)
-            self._author_rbf = nn.Linear(1, args.author_rbf_dim) #RBFLayer(encoding_dim=args.author_rbf_dim)
+            self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
+            self._author_rbf = RBFLayer(encoding_dim=args.author_rbf_dim)
             self._description_lstm = CharLSTMModel(args)
             concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
 
