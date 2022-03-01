@@ -246,6 +246,9 @@ class CompositeModel(nn.Module):
         elif args.arch == 'byt5':
             self._encoder = ByT5Regressor(args)
             concat_dim = self.T5_HIDDEN_SIZE
+        elif args.arch == 'char_lstm':
+            self._encoder = CharLSTMModel(args)
+            concat_dim = self.CharLSTMModel._lstm.hidden_size
 
         if args.use_metadata:
             self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
