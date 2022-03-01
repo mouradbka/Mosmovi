@@ -248,7 +248,7 @@ class CompositeModel(nn.Module):
             concat_dim = self.T5_HIDDEN_SIZE
         elif args.arch == 'char_lstm':
             self._encoder = CharLSTMModel(args)
-            concat_dim = self._encoder._lstm.hidden_size
+            concat_dim = self._encoder._lstm.hidden_size * 2
 
         if args.use_metadata:
             self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
