@@ -25,16 +25,12 @@ class CharModel(nn.Module):
 
 
 class CharLSTMModel(nn.Module):
-    def __init__(self, args, no_classes=None):
+    def __init__(self, args):
         super(CharLSTMModel, self).__init__()
         self.classify = args.classify
         self._token_embed = nn.Embedding(256, 50, 255)
         self._lstm = nn.LSTM(50, 50, 2, bidirectional=True, batch_first=True)
-        if args.classify:
-            self._ffn = nn.Linear(100, no_classes)
-            self.softmax = nn.Softmax()
-        else:
-            self._ffn = nn.Linear(100, 2)
+        self._ffn = nn.Linear(100, 2)
 
     def forward(self, byte_tokens, word_tokens, features_only=False):
         input_ids = byte_tokens.input_ids
@@ -43,8 +39,6 @@ class CharLSTMModel(nn.Module):
         pool = torch.mean(context_embeds, dim=1)
         if features_only:
             return pool
-        elif self.classify:
-            self.softmax(self._ffn(pool))
         else:
             return self._ffn(pool)
 
