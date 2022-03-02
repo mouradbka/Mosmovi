@@ -42,8 +42,10 @@ class TweetDataset(Dataset):
         coords = torch.FloatTensor(self.coords[idx])
         metadata = None
         if self.use_metadata:
-            tweet_time = torch.nan_to_num(torch.FloatTensor([self.tweet_time[idx]]), 0.5)
-            author_time = torch.nan_to_num(torch.FloatTensor([self.author_time[idx]]), 0.5)
+            # tweet_time = torch.nan_to_num(torch.FloatTensor([self.tweet_time[idx]]), 0.5)
+            # author_time = torch.nan_to_num(torch.FloatTensor([self.author_time[idx]]), 0.5)
+            tweet_time = torch.FloatTensor([self.tweet_time[idx]])
+            author_time = torch.FloatTensor([self.author_time[idx]])
             author_desc = self.author_desc[idx]
             metadata = (tweet_time, author_time, author_desc)
 
