@@ -66,4 +66,4 @@ class TweetDataset(Dataset):
             author_desc = self.author_desc[idx]
             metadata = (tweet_time, author_time, author_desc, fname)
 
-        return tokens, labels, metadata, clusterer
+        return tokens, labels, metadata
