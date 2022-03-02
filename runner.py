@@ -51,6 +51,7 @@ def main():
 
     tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata, classify=args.classify)
 
+
     if args.split_uids:
         gss = GroupShuffleSplit(n_splits=1, train_size=0.9)
         train_indices, val_indices = next(gss.split(np.arange(len(tweet_dataset)), groups=tweet_dataset.uids))
@@ -75,7 +76,7 @@ def main():
     val_iter = tqdm.tqdm(_val_iter)
 
     model_arch = utils.get_arch(args.arch)
-    model = model_arch(args)
+    model = model_arch(args, tweet_dataset.clusterer.labels_.max())
     model.to(device)
 
     num_training_steps = args.num_epochs * len(train_iter)
