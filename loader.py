@@ -40,7 +40,7 @@ class TweetDataset(Dataset):
         #classification: run clustering alg. to get cluster labels
         if self.classify:
             rads = np.radians(self.coords)
-            self.clusterer = hdbscan.HDBSCAN(min_cluster_size=30, metric='haversine', algorithm='best', alpha=1.0)
+            self.clusterer = hdbscan.HDBSCAN(min_cluster_size=30, metric='haversine', algorithm='boruvka_kdtree', alpha=1.0, memory='./')
             self.cluster_labels = self.clusterer.fit_predict(rads)
             print('no. of clusters: ', self.clusterer.labels_.max())
         else:
