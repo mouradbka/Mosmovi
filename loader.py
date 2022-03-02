@@ -38,14 +38,14 @@ class TweetDataset(Dataset):
                 self.author_desc.extend([str(i) for i in df.author_description.tolist()])
 
         print(len(self.coords), ' :no. datapoints')
-        print(self.coords[0], ' :sample datapoint')
+        print(self.coords[0:10], ' :sample datapoint')
         #classification: run clustering alg. to get cluster labels
         if self.classify:
             #rads = np.radians(self.coords)
             self.clusterer = hdbscan.HDBSCAN(min_cluster_size=30, algorithm='boruvka_kdtree', alpha=1.0, memory='./') #metric='haversine'
             self.cluster_labels = self.clusterer.fit_predict(self.coords)
             print(len(self.cluster_labels), ' :no. datapoints post clustering')
-            print(self.cluster_labels[0], ' :sample post clustering')
+            print(self.cluster_labels[0:10], ' :sample post clustering')
             print('no. of clusters: ', self.clusterer.labels_.max())
         else:
             self.clusterer = None
@@ -57,7 +57,7 @@ class TweetDataset(Dataset):
     def __getitem__(self: Dataset, idx: int):
         tokens = self.tweet_tokens[idx]
         if self.classify:
-            labels = torch.FloatTensor(self.cluster_labels[idx])
+            labels = torch.LongTensor(self.cluster_labels[idx])
         else:
             labels = torch.FloatTensor(self.coords[idx])
         metadata = None
