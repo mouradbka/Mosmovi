@@ -37,11 +37,15 @@ class TweetDataset(Dataset):
                 self.author_time.extend(get_normalised_time(author_dt))
                 self.author_desc.extend([str(i) for i in df.author_description.tolist()])
 
+            print(len(self.coords), ' :no. datapoints')
+            print(self.coords[0], ' :sample datapoint')
         #classification: run clustering alg. to get cluster labels
         if self.classify:
             rads = np.radians(self.coords)
             self.clusterer = hdbscan.HDBSCAN(min_cluster_size=30, algorithm='boruvka_kdtree', alpha=1.0, memory='./') #metric='haversine'
             self.cluster_labels = self.clusterer.fit_predict(rads)
+            print(len(self.cluster_labels), ' :no. datapoints post clustering')
+            print(self.cluster_labels[0], ' :sample post clustering')
             print('no. of clusters: ', self.clusterer.labels_.max())
         else:
             self.clusterer = None
