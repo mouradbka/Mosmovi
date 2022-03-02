@@ -57,7 +57,7 @@ class TweetDataset(Dataset):
     def __getitem__(self: Dataset, idx: int):
         tokens = self.tweet_tokens[idx]
         if self.classify:
-            labels = [self.cluster_labels[idx]]
+            labels = torch.tensor([self.cluster_labels[idx]])
         else:
             labels = torch.FloatTensor(self.coords[idx])
         metadata = None
