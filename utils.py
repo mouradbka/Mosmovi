@@ -33,6 +33,7 @@ def get_criterion(crit):
         'mse': nn.MSELoss(),
         'l1': nn.L1Loss(),
         'smooth_l1': nn.SmoothL1Loss(),
+        'cross_entropy': nn.CrossEntropyLoss()
     }
     return crits[crit]
 
@@ -126,7 +127,7 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     return loss
 
 
-def evaluate(batch, model, criterion, mdn, device, generate=False):
+def evaluate(batch, model, criterion, mdn, device, generate=False, clusterer=None):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
     coords = coords.to(device)
@@ -145,6 +146,9 @@ def evaluate(batch, model, criterion, mdn, device, generate=False):
 
     if len(pred.shape) == 1:
         pred = pred[None, :]
+
+    if clusterer:
+        pred = clusterer.weighted_cluster_centroid(pred)
     loss = criterion(pred, coords)
     distance = gc_distance(coords, pred)
 

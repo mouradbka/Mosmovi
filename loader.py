@@ -5,10 +5,11 @@ import glob
 from torch.utils.data import Dataset
 import numpy as np
 logger = logging.getLogger()
+import hdbscan
 
 
 class TweetDataset(Dataset):
-    def __init__(self: Dataset, data_dir: str, char_max_length=1014, use_metadata=True) -> None:
+    def __init__(self: Dataset, data_dir: str, char_max_length=1014, use_metadata=True, classify=False) -> None:
         self.tweet_tokens = []
         self.tweet_time = []
         self.author_time = []
@@ -18,6 +19,7 @@ class TweetDataset(Dataset):
         self.uids = []
         self.char_max_length = char_max_length
         self.use_metadata = use_metadata
+        self.classify = classify
 
         for fname in glob.glob(f"{data_dir}/*"):
             df = pd.read_csv(fname, sep=';', header=0)
@@ -35,13 +37,25 @@ class TweetDataset(Dataset):
                 self.author_time.extend(get_normalised_time(author_dt))
                 self.author_desc.extend([str(i) for i in df.author_description.tolist()])
 
+        #classification: run clustering alg. to get cluster labels
+        if self.classify:
+            rads = np.radians(self.coords)
+            self.clusterer = hdbscan.HDBSCAN(min_cluster_size=30, metric='haversine', algorithm='best', alpha=1.0)
+            self.cluster_labels = self.clusterer.fit_predict(rads)
+            print('no. of clusters: ', self.clusterer.labels_.max())
+        else:
+            self.clusterer = None
+
     def __len__(self: Dataset) -> int:
         assert len(self.tweet_tokens) == len(self.coords)
         return len(self.tweet_tokens)
 
     def __getitem__(self: Dataset, idx: int):
         tokens = self.tweet_tokens[idx]
-        coords = torch.FloatTensor(self.coords[idx])
+        if self.classify:
+            labels = torch.FloatTensor(self.cluster_labels[idx])
+        else:
+            labels = torch.FloatTensor(self.coords[idx])
         metadata = None
         if self.use_metadata:
             # tweet_time = torch.nan_to_num(torch.FloatTensor([self.tweet_time[idx]]), 0.5)
@@ -52,4 +66,4 @@ class TweetDataset(Dataset):
             author_desc = self.author_desc[idx]
             metadata = (tweet_time, author_time, author_desc, fname)
 
-        return tokens, coords, metadata
+        return tokens, labels, metadata, clusterer

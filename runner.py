@@ -43,12 +43,13 @@ def main():
     parser.add_argument('--tweet_rbf_dim', type=int, default=50)
     parser.add_argument('--author_rbf_dim', type=int, default=10)
     parser.add_argument('--mdn', action='store_true', default=False)
+    parser.add_argument('--classify', action='store_true', default=False)
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     wandb.init(project='mosmovi_1', config=args, name=args.run_name)
 
-    tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata)
+    tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata, classify=args.classify)
 
     if args.split_uids:
         gss = GroupShuffleSplit(n_splits=1, train_size=0.9)
@@ -95,7 +96,7 @@ def main():
             model.eval()
             distances = []
             for batch in val_iter:
-                val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn, device=device)
+                val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn, device=device, clusterer=tweet_dataset.clusterer)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
                 distances.extend(val_distance.tolist())
