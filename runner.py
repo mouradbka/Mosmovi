@@ -30,7 +30,7 @@ def main():
     parser.add_argument('--max_seq_len', default=-1, type=int)
     parser.add_argument('--subsample_ratio', default=-1)
     # model
-    parser.add_argument('--loss', default='mse', choices=['mse', 'l1', 'smooth_l1'])
+    parser.add_argument('--loss', default='mse', choices=['mse', 'l1', 'smooth_l1', 'cross_entropy'])
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'adamw', 'sgd'])
     parser.add_argument('--gradient_accumulation_steps', type=int, default=8)
     parser.add_argument('--scheduler', default='constant', choices=['linear', 'constant'])
