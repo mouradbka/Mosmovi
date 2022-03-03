@@ -127,9 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-data/
-data_full/
+data*/
 .idea
 wandb/
+joblib/
 
 *.pt
