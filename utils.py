@@ -89,9 +89,12 @@ def pad_chars(instance, tokenizers, max_length=-1):
         encoded_metadata = None
 
     encoded_tokens = (byte_tokens, word_tokens)
+    if isinstance(coords, tuple):
+        cluster_labels = list(zip(*coords))[1]
+        coords = list(zip(*coords))[0]
+        encoded_labels = torch.stack(cluster_labels)
     encoded_coords = torch.stack(coords)
-
-    return encoded_tokens, encoded_coords, encoded_metadata
+    return encoded_tokens, (encoded_coords,encoded_labels) , encoded_metadata
 
 
 def subsample_datasets(train_dataset, val_dataset, ratio):
@@ -105,7 +108,11 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
 def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, mdn, device):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
-    coords = coords.to(device)
+    #it's classification if tuple, so use cluster label
+    if isinstance(coords, tuple): 
+        coords = coords[1].to(device)
+    else:
+        coords = coords.to(device)
     if encoded_metadata is not None:
         encoded_metadata = [i.to(device) for i in encoded_metadata]
 
@@ -130,7 +137,10 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
 def evaluate(batch, model, criterion, mdn, device, generate=False, clusterer=None):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
+    if isinstance(coords, tuple):
+        coords, cluster_labels = coords[0], coords[1]
     coords = coords.to(device)
+    cluster_labels = cluster_labels.to(device)
     if encoded_metadata is not None:
         encoded_metadata = [i.to(device) for i in encoded_metadata]
 
@@ -148,9 +158,13 @@ def evaluate(batch, model, criterion, mdn, device, generate=False, clusterer=Non
         pred = pred[None, :]
 
     if clusterer:
-        pred = clusterer.weighted_cluster_centroid(pred)
-    loss = criterion(pred, coords)
-    distance = gc_distance(coords, pred)
+        #argmax of softmax probs, then convert to int then subtract one to get original clustering ids 
+        dist_pred = torch.FloatTensor(np.array([clusterer.weighted_cluster_centroid(p-1) for p in torch.argmax(pred, 1).detach().cpu().numpy().tolist()])).to(device)
+        distance = gc_distance(coords, dist_pred)
+    else:
+        distance = gc_distance(coords, pred)
+
+    loss = criterion(pred, cluster_labels)
 
     if generate:
         assert len(byte_tokens.input_ids) == len(pred) == 1

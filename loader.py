@@ -6,7 +6,8 @@ from torch.utils.data import Dataset
 import numpy as np
 logger = logging.getLogger()
 import hdbscan
-
+from collections import Counter
+import math
 
 class TweetDataset(Dataset):
     def __init__(self: Dataset, data_dir: str, char_max_length=1014, use_metadata=True, classify=False) -> None:
@@ -16,6 +17,7 @@ class TweetDataset(Dataset):
         self.author_desc = []
         self.fnames = []
         self.coords = []
+        self.labels = []
         self.uids = []
         self.char_max_length = char_max_length
         self.use_metadata = use_metadata
@@ -42,11 +44,12 @@ class TweetDataset(Dataset):
         #classification: run clustering alg. to get cluster labels
         if self.classify:
             #rads = np.radians(self.coords)
-            self.clusterer = hdbscan.HDBSCAN(min_cluster_size=30, algorithm='boruvka_kdtree', alpha=1.0, memory='./') #metric='haversine'
+            self.clusterer = hdbscan.HDBSCAN(min_cluster_size=math.ceil(len(self.coords)/100), min_samples=50, algorithm='boruvka_kdtree', alpha=1.0, memory='./') #metric='haversine'
             self.cluster_labels = self.clusterer.fit_predict(self.coords)
+            self.cluster_labels = [l+1 for l in  self.cluster_labels]
             print(len(self.cluster_labels), ' :no. datapoints post clustering')
-            print(self.cluster_labels[0:10], ' :sample post clustering')
-            print('no. of clusters: ', self.clusterer.labels_.max())
+            print(Counter(self.cluster_labels), ' :sample post clustering')
+            print('no. of clusters:  ', self.clusterer.labels_.max() + 2)
         else:
             self.clusterer = None
 
@@ -57,7 +60,7 @@ class TweetDataset(Dataset):
     def __getitem__(self: Dataset, idx: int):
         tokens = self.tweet_tokens[idx]
         if self.classify:
-            labels = torch.tensor(self.cluster_labels[idx])
+            labels = (torch.FloatTensor(self.coords[idx]), torch.tensor(self.cluster_labels[idx]))
         else:
             labels = torch.FloatTensor(self.coords[idx])
         metadata = None
