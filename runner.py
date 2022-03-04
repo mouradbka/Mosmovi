@@ -76,8 +76,8 @@ def main():
     val_iter = tqdm.tqdm(_val_iter)
 
     model_arch = utils.get_arch(args.arch)
-    print('no classes: ', int(tweet_dataset.clusterer.labels_.max()))
-    model = model_arch(args, int(tweet_dataset.clusterer.labels_.max()))
+    print('no classes: ', int(tweet_dataset.clusterer.labels_.max())+2)
+    model = model_arch(args, int(tweet_dataset.clusterer.labels_.max())+2)
     model.to(device)
 
     num_training_steps = args.num_epochs * len(train_iter)
