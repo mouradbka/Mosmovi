@@ -263,7 +263,7 @@ class CompositeModel(nn.Module):
             self._head = MDN(100, 2, 20)
         elif args.classify:
             self._head = nn.Linear(100, no_classes)
-            self.softmax = nn.Softmax()
+            #self.softmax = nn.Softmax()
         else:
             self._ffn = nn.Linear(100, 2)
 
@@ -280,7 +280,7 @@ class CompositeModel(nn.Module):
         if self.classify:
             print(concat.shape)
             reduced = self._reduce(F.dropout(concat, p=0.2))
-            output = self.softmax(self._head(reduced))
+            output = self._head(reduced)
             return output
             #self.softmax(self._head((self._reduce(F.dropout(concat, p=0.2)))))
             #return  self.softmax(self._head((self._reduce(F.dropout(concat, p=0.2)))))
