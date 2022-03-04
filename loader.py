@@ -10,7 +10,7 @@ from collections import Counter
 import math
 
 class TweetDataset(Dataset):
-    def __init__(self: Dataset, data_dir: str, char_max_length=1014, use_metadata=True, classify=False) -> None:
+    def __init__(self: Dataset, data_dir: str, char_max_length=1014, use_metadata=True, classify=False, cluster_datapoint_ratio=50) -> None:
         self.tweet_tokens = []
         self.tweet_time = []
         self.author_time = []
@@ -44,7 +44,7 @@ class TweetDataset(Dataset):
         #classification: run clustering alg. to get cluster labels
         if self.classify:
             #rads = np.radians(self.coords)
-            self.clusterer = hdbscan.HDBSCAN(min_cluster_size=math.ceil(len(self.coords)/100), min_samples=50, algorithm='boruvka_kdtree', alpha=1.0, memory='./') #metric='haversine'
+            self.clusterer = hdbscan.HDBSCAN(min_cluster_size=math.ceil(len(self.coords)/cluster_datapoint_ratio), min_samples=50, algorithm='boruvka_kdtree', alpha=1.0, memory='./') #metric='haversine'
             self.cluster_labels = self.clusterer.fit_predict(self.coords)
             self.cluster_labels = [l+1 for l in  self.cluster_labels]
             print(len(self.cluster_labels), ' :no. datapoints post clustering')

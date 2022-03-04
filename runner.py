@@ -44,12 +44,15 @@ def main():
     parser.add_argument('--author_rbf_dim', type=int, default=10)
     parser.add_argument('--mdn', action='store_true', default=False)
     parser.add_argument('--classify', action='store_true', default=False)
+    parser.add_argument('--cluster_datapoint_ratio', type=int, default=50)
+
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     wandb.init(project='mosmovi_1', config=args, name=args.run_name)
 
-    tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata, classify=args.classify)
+    tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata,
+                                 classify=args.classify, cluster_datapoint_ratio=args.cluster_datapoint_ratio)
 
 
     if args.split_uids:
