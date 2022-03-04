@@ -69,6 +69,6 @@ class TweetDataset(Dataset):
             author_time = torch.nan_to_num(torch.FloatTensor([self.author_time[idx]]), 0.5)
             fname = self.fnames[idx]
             author_desc = self.author_desc[idx]
-            metadata = (tweet_time, author_time, author_desc, fname)
+            metadata = (tweet_time, author_time, author_desc)
 
         return tokens, labels, metadata
