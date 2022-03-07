@@ -80,7 +80,6 @@ def main():
     val_iter = tqdm.tqdm(_val_iter)
 
     model_arch = utils.get_arch(args.arch)
-    print('no classes: ', int(tweet_dataset.clusterer.labels_.max())+2)
     model = model_arch(args, int(tweet_dataset.clusterer.labels_.max())+2)
     model.to(device)
 
