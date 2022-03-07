@@ -158,8 +158,9 @@ def evaluate(batch, model, criterion, mdn, device, generate=False, clusterer=Non
         pred = pred[None, :]
 
     if clusterer:
-        #argmax of softmax probs, then convert to int then subtract one to get original clustering ids 
-        dist_pred = torch.FloatTensor(np.array([clusterer.weighted_cluster_centroid(p-1) for p in torch.argmax(pred, 1).detach().cpu().numpy().tolist()])).to(device)
+        #argmax of softmax probs, then convert to int then subtract one to get original clustering ids
+        dist_pred = torch.FloatTensor(np.array([clusterer.cluster_centers_[p-1,:] for p in torch.argmax(pred, 1).detach().cpu().numpy().tolist()])).to(device)
+        #dist_pred = torch.FloatTensor(np.array([clusterer.weighted_cluster_centroid(p-1) for p in torch.argmax(pred, 1).detach().cpu().numpy().tolist()])).to(device)
         distance = gc_distance(coords, dist_pred)
     else:
         distance = gc_distance(coords, pred)

@@ -8,6 +8,7 @@ logger = logging.getLogger()
 import hdbscan
 from collections import Counter
 import math
+from sklearn.cluster import KMeans
 
 class TweetDataset(Dataset):
     def __init__(self: Dataset, data_dir: str, char_max_length=1014, use_metadata=True, classify=False, clusterer=None, cluster_datapoint_ratio=50) -> None:
@@ -46,7 +47,8 @@ class TweetDataset(Dataset):
         if self.classify:
             #rads = np.radians(self.coords)
             if not self.clusterer:
-                self.clusterer = hdbscan.HDBSCAN(min_cluster_size=math.ceil(len(self.coords)/cluster_datapoint_ratio), min_samples=50, algorithm='boruvka_kdtree', alpha=1.0, memory='./') #metric='haversine'
+                self.clusterer = KMeans(n_clusters=cluster_datapoint_ratio, random_state=0).fit_predict(self.coords)
+                #self.clusterer = hdbscan.HDBSCAN(min_cluster_size=math.ceil(len(self.coords)/cluster_datapoint_ratio), min_samples=50, algorithm='boruvka_kdtree', alpha=1.0, memory='./') #metric='haversine'
             self.cluster_labels = self.clusterer.fit_predict(self.coords)
             self.cluster_labels = [l+1 for l in  self.cluster_labels]
             print(len(self.cluster_labels), ' :no. datapoints post clustering')
