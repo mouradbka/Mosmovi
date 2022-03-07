@@ -265,7 +265,7 @@ class CompositeModel(nn.Module):
             self._head = nn.Linear(100, no_classes)
             #self.softmax = nn.Softmax()
         else:
-            self._ffn = nn.Linear(100, 2)
+            self._head = nn.Linear(100, 2)
 
     def forward(self, byte_tokens, word_tokens, metadata):
         text_encoding = self._encoder(byte_tokens, word_tokens, features_only=True)
