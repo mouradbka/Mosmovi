@@ -63,7 +63,7 @@ def gc_distance(gold, pred):
     return torch.nan_to_num(torch.acos(torch.inner(n_gold.to(device), n_pred.to(device)).diag()) * EARTH_RADIUS)
 
 
-def pad_chars(instance, tokenizers, max_length=-1):
+def pad_chars(instance, tokenizers, max_length=-1, classify=False):
     tokens, coords, metadata = zip(*instance)
     byte_tokenizer, word_tokenizer = tokenizers
 
@@ -89,12 +89,15 @@ def pad_chars(instance, tokenizers, max_length=-1):
         encoded_metadata = None
 
     encoded_tokens = (byte_tokens, word_tokens)
-    if isinstance(coords, tuple):
+    if classify:
         cluster_labels = list(zip(*coords))[1]
         coords = list(zip(*coords))[0]
         encoded_labels = torch.stack(cluster_labels)
-    encoded_coords = torch.stack(coords)
-    return encoded_tokens, (encoded_coords,encoded_labels) , encoded_metadata
+        encoded_coords = torch.stack(coords)
+        return encoded_tokens, (encoded_coords, encoded_labels), encoded_metadata
+    else:
+        encoded_coords = torch.stack(coords)
+        return encoded_tokens, encoded_coords , encoded_metadata
 
 
 def subsample_datasets(train_dataset, val_dataset, ratio):
