@@ -142,8 +142,9 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
     encoded_tokens = [i.to(device) for i in encoded_tokens]
     if classify:
         coords, cluster_labels = coords[0], coords[1]
+        cluster_labels = cluster_labels.to(device)
+
     coords = coords.to(device)
-    cluster_labels = cluster_labels.to(device)
     if encoded_metadata is not None:
         encoded_metadata = [i.to(device) for i in encoded_metadata]
 
@@ -167,8 +168,10 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
         distance = gc_distance(coords, dist_pred)
     else:
         distance = gc_distance(coords, pred)
-
-    loss = criterion(pred, cluster_labels)
+    if classify:
+        loss = criterion(pred, cluster_labels)
+    else:
+        loss = criterion(pred, coords)
 
     if generate:
         assert len(byte_tokens.input_ids) == len(pred) == 1
