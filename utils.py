@@ -123,7 +123,8 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
 
     if mdn:
         pi, sigma, mu = model(byte_tokens, word_tokens, encoded_metadata)
-        loss = mdn_loss(pi, sigma, mu, coords)
+        print(pi, sigma, mu, ' :pi, sigma, mu')
+        loss = mdn_loss(coords,pi,mu,sigma)
     else:
         pred = model(byte_tokens, word_tokens, encoded_metadata)
         loss = criterion(pred, coords)

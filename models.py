@@ -142,7 +142,7 @@ class CharLSTMCNNModel(nn.Module):
 
         self._fc1 = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Dropout(p=self.dropout))
         if args.mdn:
-            self._fc2 = MDN(128, 2, 10)
+            self._fc2 = MDN(128,2, 10)
         else:
             self._fc2 = nn.Linear(128, 2)
 
@@ -260,10 +260,9 @@ class CompositeModel(nn.Module):
 
         self._reduce = nn.Linear(concat_dim, 100)
         if args.mdn:
-            self._head = MDN(100, 2, 20)
+            self._head = MDN(100,2,10)
         elif args.classify:
             self._head = nn.Linear(100, no_classes)
-            #self.softmax = nn.Softmax()
         else:
             self._head = nn.Linear(100, 2)
 
@@ -282,7 +281,5 @@ class CompositeModel(nn.Module):
             reduced = self._reduce(F.dropout(concat, p=0.2))
             output = self._head(reduced)
             return output
-            #self.softmax(self._head((self._reduce(F.dropout(concat, p=0.2)))))
-            #return  self.softmax(self._head((self._reduce(F.dropout(concat, p=0.2)))))
         else:
             return self._head((self._reduce(F.dropout(concat, p=0.2))))
