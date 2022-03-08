@@ -43,6 +43,7 @@ def main():
     parser.add_argument('--tweet_rbf_dim', type=int, default=50)
     parser.add_argument('--author_rbf_dim', type=int, default=10)
     parser.add_argument('--mdn', action='store_true', default=False)
+    parser.add_argument('--num_gausians', type=int, default=10)
     parser.add_argument('--classify', action='store_true', default=False)
     parser.add_argument('--cluster_datapoint_ratio', type=int, default=50)
 

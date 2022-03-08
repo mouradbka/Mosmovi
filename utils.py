@@ -154,7 +154,9 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
     if mdn:
         pi, sigma, mu = model(byte_tokens, word_tokens, encoded_metadata)
         samples = mdn_sample(pi, sigma, mu)
-        pred = torch.mean(samples, dim=-1)
+        #print(samples.shape, ' samples')
+        #pred = torch.mean(samples, dim=-1)
+        pred=samples
     else:
         pred = model(byte_tokens, word_tokens, encoded_metadata)
 
@@ -171,6 +173,8 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
     if classify:
         loss = criterion(pred, cluster_labels)
     else:
+        #print(pred.shape, ' pred.shape')
+        #print(coords.shape, ' coords.shape')
         loss = criterion(pred, coords)
 
     if generate:

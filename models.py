@@ -258,13 +258,15 @@ class CompositeModel(nn.Module):
             self._description_lstm = CharLSTMModel(args)
             concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
 
-        self._reduce = nn.Linear(concat_dim, 100)
         if args.mdn:
-            self._head = MDN(100,2,10)
+            self._head = (MDN(100,2,args.num_gausians))
+            self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
         elif args.classify:
             self._head = nn.Linear(100, no_classes)
+            self._reduce = nn.Linear(concat_dim, 100)
         else:
             self._head = nn.Linear(100, 2)
+            self._reduce = nn.Linear(concat_dim, 100)
 
     def forward(self, byte_tokens, word_tokens, metadata):
         text_encoding = self._encoder(byte_tokens, word_tokens, features_only=True)

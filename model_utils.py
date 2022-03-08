@@ -58,7 +58,7 @@ def sample(pi,mu,sigma):
                     sigma.size(1)).normal_())
     for i,idx in enumerate(ids):
         sampled[i]=sampled[i].mul(sigma[i,:,idx]).add(mu[i,:,idx])
-    return sampled.data.numpy()
+    return sampled#.data.numpy()
 
 
 class MDN(nn.Module):
