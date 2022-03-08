@@ -96,7 +96,7 @@ def main():
     for epoch in range(args.num_epochs):
         model.train()
         for i, batch in enumerate(train_iter):
-            train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion, args.gradient_accumulation_steps, args.mdn, device=device)
+            train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion, args.gradient_accumulation_steps, args.mdn, classify=args.classify, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
 
@@ -104,7 +104,7 @@ def main():
             model.eval()
             distances = []
             for batch in val_iter:
-                val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn, device=device, clusterer=tweet_dataset.clusterer)
+                val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn, classify=args.classify, device=device, clusterer=tweet_dataset.clusterer)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
                 distances.extend(val_distance.tolist())

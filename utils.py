@@ -105,11 +105,11 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
     return train_dataset, val_dataset
 
 
-def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, mdn, device):
+def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, mdn, classify, device):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
-    #it's classification if tuple, so use cluster label
-    if isinstance(coords, tuple): 
+    #if it's classification, use cluster label
+    if classify:
         coords = coords[1].to(device)
     else:
         coords = coords.to(device)
@@ -134,10 +134,10 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     return loss
 
 
-def evaluate(batch, model, criterion, mdn, device, generate=False, clusterer=None):
+def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clusterer=None):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
-    if isinstance(coords, tuple):
+    if classify:
         coords, cluster_labels = coords[0], coords[1]
     coords = coords.to(device)
     cluster_labels = cluster_labels.to(device)
