@@ -61,6 +61,26 @@ def sample(pi,mu,sigma):
     return sampled#.data.numpy()
 
 
+def predict(pi,mu,sigma, method='pi'):
+
+    """
+    # Parameters
+    ----------
+    pi (batch_size x num_latent) is priors
+    mu (batch_size x dim_out x num_latent) is mean of each Gaussian
+    sigma (batch_size x dim_out x num_latent) is standard deviation of each Gaussian
+    Output
+    ----------
+    """
+    if method == 'mixture':
+        print('not implemented')
+    elif method == 'pi':
+        pis = np.argmax(pi, axis=1)
+        pis = pis.repeat(1,2,1).view(-1, 2, 1)
+        selected_mus = torch.gather(mu, -1, pis)
+    return selected_mus.squeeze(-1)
+
+
 class MDN(nn.Module):
     def __init__(self,dim_in,dim_out,num_latent):
         super(MDN,self).__init__()

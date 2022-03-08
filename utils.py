@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from torch import nn, optim
 from models import *
-from model_utils import mdn_loss
+from model_utils import mdn_loss, predict
 from model_utils import sample as mdn_sample
 
 
@@ -152,11 +152,12 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
 
     # check if batch dim squeezed out during pred, fix
     if mdn:
-        pi, sigma, mu = model(byte_tokens, word_tokens, encoded_metadata)
-        samples = mdn_sample(pi, sigma, mu)
+        pi, mu, sigma = model(byte_tokens, word_tokens, encoded_metadata)
+        #samples = mdn_sample(pi, mu, sigma)
+        pred = predict(pi, mu, sigma)
         #print(samples.shape, ' samples')
         #pred = torch.mean(samples, dim=-1)
-        pred=samples
+        #pred=samples
     else:
         pred = model(byte_tokens, word_tokens, encoded_metadata)
 
