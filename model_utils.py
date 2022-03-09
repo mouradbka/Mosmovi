@@ -75,7 +75,7 @@ def predict(pi,mu,sigma, method='pi'):
     if method == 'mixture':
         print('not implemented')
     elif method == 'pi':
-        pis = np.argmax(pi, axis=1)
+        pis = torch.argmax(pi, axis=1)
         pis = pis.repeat(1,2,1).view(-1, 2, 1)
         selected_mus = torch.gather(mu, -1, pis)
     return selected_mus.squeeze(-1)
