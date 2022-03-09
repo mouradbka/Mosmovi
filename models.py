@@ -242,6 +242,7 @@ class CompositeModel(nn.Module):
         super(CompositeModel, self).__init__()
         self.classify = args.classify
         self.use_metadata = args.use_metadata
+        self.arch = args.arch
         if args.arch == 'bert':
             self._encoder = BertRegressor(args)
             concat_dim = self._encoder._model.config.hidden_size
