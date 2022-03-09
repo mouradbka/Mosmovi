@@ -269,7 +269,10 @@ class CompositeModel(nn.Module):
             self._reduce = nn.Linear(concat_dim, 100)
 
     def forward(self, byte_tokens, word_tokens, metadata):
-        text_encoding = self._encoder(byte_tokens, word_tokens, features_only=True)
+        if self.arch == 'bert' or self.arch == 'byt5':
+            text_encoding = self._encoder(byte_tokens, word_tokens)
+        else:
+            text_encoding = self._encoder(byte_tokens, word_tokens, features_only=True)
         if self.use_metadata:
             tweet_time, author_time, author_desc = metadata
             encoded_tweet_time = self._tweet_rbf(tweet_time)
