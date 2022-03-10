@@ -260,14 +260,14 @@ class CompositeModel(nn.Module):
             concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
 
         if args.mdn:
-            self._head = (MDN(100,2,args.num_gausians))
-            self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
+            self._head = (MDN(concat_dim,2,args.num_gausians))
+            #self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
         elif args.classify:
             self._head = nn.Linear(100, no_classes)
             self._reduce = nn.Linear(concat_dim, 100)
         else:
-            self._head = nn.Linear(100, 2)
-            self._reduce = nn.Linear(concat_dim, 100)
+            self._head = nn.Linear(concat_dim, 2)
+            #self._reduce = nn.Linear(concat_dim, 100)
 
     def forward(self, byte_tokens, word_tokens, metadata):
         if self.arch == 'bert' or self.arch == 'byt5':
@@ -288,4 +288,6 @@ class CompositeModel(nn.Module):
             output = self._head(reduced)
             return output
         else:
-            return self._head((self._reduce(F.dropout(concat, p=0.2))))
+            #return self._head((self._reduce(F.dropout(concat, p=0.2))))
+            return self._head(F.dropout(concat, p=0.2))
+
