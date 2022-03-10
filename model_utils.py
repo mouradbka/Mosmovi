@@ -73,7 +73,9 @@ def predict(pi,mu,sigma, method='pi'):
     ----------
     """
     if method == 'mixture':
-        print('not implemented')
+        pis = pi.repeat(1,2).view(pi.shape[0], 2, pi.shape[1])
+        selected_mus = pis * mu
+        return torch.sum(selected_mus, -1)
     elif method == 'pi':
         pis = torch.argmax(pi, axis=1)
         pis = pis.repeat(1,2,1).view(-1, 2, 1)

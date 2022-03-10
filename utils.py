@@ -137,7 +137,7 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     return loss
 
 
-def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clusterer=None):
+def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clusterer=None, mdn_mixture=False):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
     if classify:
@@ -154,7 +154,10 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
     if mdn:
         pi, mu, sigma = model(byte_tokens, word_tokens, encoded_metadata)
         #samples = mdn_sample(pi, mu, sigma)
-        pred = predict(pi, mu, sigma)
+        if mdn_mixture:
+            pred = predict(pi, mu, sigma, method='mixture')
+        else:
+            pred = predict(pi, mu, sigma, method='pi')
         #print(samples.shape, ' samples')
         #pred = torch.mean(samples, dim=-1)
         #pred=samples

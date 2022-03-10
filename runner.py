@@ -44,6 +44,7 @@ def main():
     parser.add_argument('--author_rbf_dim', type=int, default=10)
     parser.add_argument('--mdn', action='store_true', default=False)
     parser.add_argument('--num_gausians', type=int, default=10)
+    parser.add_argument('--use_mixture', action='store_true', default=False)
     parser.add_argument('--classify', action='store_true', default=False)
     parser.add_argument('--cluster_datapoint_ratio', type=int, default=50)
 
@@ -105,7 +106,9 @@ def main():
             model.eval()
             distances = []
             for batch in val_iter:
-                val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn, classify=args.classify, device=device, clusterer=tweet_dataset.clusterer)
+                val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn,
+                                                        classify=args.classify, device=device,
+                                                        clusterer=tweet_dataset.clusterer, mdn_mixture=args.use_mixture)
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
                 distances.extend(val_distance.tolist())
