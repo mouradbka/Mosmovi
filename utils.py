@@ -131,12 +131,10 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
             mu_params = torch.cat(
                 [x.view(-1) for x in model._head.mu_h.parameters()]
             )
-            sigma_penalty = torch.norm(
-                sigma_params, reg_penalty
-            )
-            mu_penalty = torch.norm(
-                mu_params, reg_penalty
-            )
+            sigma_penalty = reg_penalty *  0.5 * torch.sum(sigma_params**2)
+
+            mu_penalty = reg_penalty *  0.5 * torch.sum(mu_params**2)
+
             loss = mdn_loss(coords, pi, mu, sigma) + sigma_penalty + mu_penalty
         else:
             loss = mdn_loss(coords,pi,mu,sigma)
