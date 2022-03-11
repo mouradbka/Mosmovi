@@ -108,7 +108,7 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
     return train_dataset, val_dataset
 
 
-def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, mdn, l2_penalty, classify, device):
+def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, mdn, reg_penalty, classify, device):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
     #if it's classification, use cluster label
@@ -124,18 +124,19 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     if mdn:
         pi, mu, sigma = model(byte_tokens, word_tokens, encoded_metadata)
         # l1 penalty
-        sigma_params = torch.cat(
-            [x.view(-1) for x in model._head.sigma_h.parameters()]
-        )
-        mu_params = torch.cat(
-            [x.view(-1) for x in model._head.mu_h.parameters()]
-        )
-        sigma_penalty = torch.norm(
-            sigma, l2_penalty
-        )
-        mu_penalty = torch.norm(
-            mu_params, l2_penalty
-        )
+        if reg_penalty > 0.0:
+            sigma_params = torch.cat(
+                [x.view(-1) for x in model._head.sigma_h.parameters()]
+            )
+            mu_params = torch.cat(
+                [x.view(-1) for x in model._head.mu_h.parameters()]
+            )
+            sigma_penalty = torch.norm(
+                sigma, reg_penalty
+            )
+            mu_penalty = torch.norm(
+                mu_params, reg_penalty
+            )
 
         loss = mdn_loss(coords,pi,mu,sigma) + sigma_penalty + mu_penalty
     else:

@@ -43,7 +43,7 @@ def main():
     parser.add_argument('--tweet_rbf_dim', type=int, default=50)
     parser.add_argument('--author_rbf_dim', type=int, default=10)
     parser.add_argument('--mdn', action='store_true', default=False)
-    parser.add_argument('--l1_penalty', type=float, default=0.0)
+    parser.add_argument('--reg_penalty', type=float, default=0.0)
     parser.add_argument('--num_gausians', type=int, default=10)
     parser.add_argument('--use_mixture', action='store_true', default=False)
     parser.add_argument('--classify', action='store_true', default=False)
@@ -100,7 +100,7 @@ def main():
         model.train()
         for i, batch in enumerate(train_iter):
             train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion,
-                                     args.gradient_accumulation_steps, args.mdn, args.l2_penalty,
+                                     args.gradient_accumulation_steps, args.mdn, args.reg_penalty,
                                      classify=args.classify, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
