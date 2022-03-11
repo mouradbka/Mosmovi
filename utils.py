@@ -132,7 +132,7 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
                 [x.view(-1) for x in model._head.mu_h.parameters()]
             )
             sigma_penalty = torch.norm(
-                sigma, reg_penalty
+                sigma_params, reg_penalty
             )
             mu_penalty = torch.norm(
                 mu_params, reg_penalty
