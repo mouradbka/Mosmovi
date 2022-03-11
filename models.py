@@ -260,7 +260,7 @@ class CompositeModel(nn.Module):
             concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
 
         if args.mdn:
-            self._head = (MDN(concat_dim,2,args.num_gausians))
+            self._head = MDN(concat_dim,2,args.num_gausians)
             #self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
         elif args.classify:
             self._head = nn.Linear(100, no_classes)
