@@ -137,8 +137,11 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
             mu_penalty = torch.norm(
                 mu_params, reg_penalty
             )
+            loss = mdn_loss(coords, pi, mu, sigma) + sigma_penalty + mu_penalty
+        else:
+            loss = mdn_loss(coords,pi,mu,sigma)
 
-        loss = mdn_loss(coords,pi,mu,sigma) + sigma_penalty + mu_penalty
+
     else:
         pred = model(byte_tokens, word_tokens, encoded_metadata)
         loss = criterion(pred, coords)
