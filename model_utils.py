@@ -96,7 +96,9 @@ class MDN(nn.Module):
 
     def forward(self,x):
         pi=self.pi_h(x)
+        #print(pi, ' pi model')
         pi=F.softmax(pi, dim=-1)
+        #print(pi, ' pi model softmax')
         mu=self.mu_h(x)
         mu=mu.view(-1,self.dim_out,self.num_latent)
         #sigma=self.elu(torch.exp(self.sigma_h(x))) + 1

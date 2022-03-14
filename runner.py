@@ -2,6 +2,7 @@ import numpy as np
 import wandb
 import utils
 import tqdm
+from collections import defaultdict
 
 from transformers import get_scheduler
 from argparse import ArgumentParser
@@ -44,6 +45,8 @@ def main():
     parser.add_argument('--author_rbf_dim', type=int, default=10)
     parser.add_argument('--mdn', action='store_true', default=False)
     parser.add_argument('--reg_penalty', type=float, default=0.0)
+    parser.add_argument('--entropy_loss_weight', type=float, default=0.0)
+    parser.add_argument('--num_confidence_bins', type=int, default=5)
     parser.add_argument('--num_gausians', type=int, default=10)
     parser.add_argument('--use_mixture', action='store_true', default=False)
     parser.add_argument('--classify', action='store_true', default=False)
@@ -100,7 +103,7 @@ def main():
         model.train()
         for i, batch in enumerate(train_iter):
             train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion,
-                                     args.gradient_accumulation_steps, args.mdn, args.reg_penalty,
+                                     args.gradient_accumulation_steps, args.mdn, args.reg_penalty, args.entropy_loss_weight,
                                      classify=args.classify, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
@@ -108,13 +111,27 @@ def main():
         with torch.no_grad():
             model.eval()
             distances = []
+            distances_confidence = defaultdict(list)
             for batch in val_iter:
-                val_loss, val_distance = utils.evaluate(batch, model, criterion, args.mdn,
-                                                        classify=args.classify, device=device,
-                                                        clusterer=tweet_dataset.clusterer, mdn_mixture=args.use_mixture)
+
+                eval_stats = utils.evaluate(batch, model, criterion, args.mdn,
+                                                        classify=args.classify,
+                                                        device=device,
+                                                        clusterer=tweet_dataset.clusterer,
+                                                        mdn_mixture=args.use_mixture,
+                                                        no_bins=args.num_confidence_bins)
+                if args.mdn:
+                    val_loss, val_distance, val_distance_confidence = eval_stats
+                    for confidence_level, corresp_val_distance in val_distance_confidence.items():
+                        distances_confidence[int(confidence_level)].extend(corresp_val_distance.tolist())
+
+                else:
+                    val_loss, val_distance = eval_stats
+
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
                 distances.extend(val_distance.tolist())
+
 
             # log
             val_mean = np.nan_to_num(np.mean(distances))
@@ -122,6 +139,15 @@ def main():
             wandb.log({"val_mean": val_mean, "val_median": val_median})
             logger.info(f"val_mean: {val_mean}")
             logger.info(f"val_median: {val_median}")
+
+            if args.mdn:
+                for confidence_level, corresp_val_distance_list in distances_confidence.items():
+                    val_mean_c = np.nan_to_num(np.mean(corresp_val_distance_list))
+                    val_median_c = np.nan_to_num(np.median(corresp_val_distance_list))
+                    wandb.log({"conf: " + str(confidence_level) + " - " + "val_mean": val_mean_c, "val_median": val_median_c})
+                    logger.info(f"conf: " + str(confidence_level) + " - " + f"val_mean: {val_mean_c}")
+                    logger.info(f"conf: " + str(confidence_level) + " - " + f"val_median: {val_median_c}")
+
 
             # save model
             is_best = val_mean < best_mean

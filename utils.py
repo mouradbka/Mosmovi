@@ -4,13 +4,14 @@ import shutil
 import random
 import torch
 import torch.nn.functional as F
+from torch.distributions import Categorical
 
 from torch import nn, optim
 from models import *
 from model_utils import mdn_loss, predict
 from model_utils import sample as mdn_sample
 
-
+import numpy as np
 
 EARTH_RADIUS = 6372.8
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -108,7 +109,8 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
     return train_dataset, val_dataset
 
 
-def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps, mdn, reg_penalty, classify, device):
+def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps,
+          mdn, reg_penalty, entropy_loss_weight, classify, device):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
     #if it's classification, use cluster label
@@ -123,6 +125,7 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
 
     if mdn:
         pi, mu, sigma = model(byte_tokens, word_tokens, encoded_metadata)
+        loss = mdn_loss(coords, pi, mu, sigma)
         # l1 penalty
         if reg_penalty > 0.0:
             sigma_params = torch.cat(
@@ -135,10 +138,10 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
 
             mu_penalty = reg_penalty *  0.5 * torch.sum(mu_params**2)
 
-            loss = mdn_loss(coords, pi, mu, sigma) + sigma_penalty + mu_penalty
-        else:
-            loss = mdn_loss(coords,pi,mu,sigma)
-
+            loss = loss + sigma_penalty + mu_penalty
+        if entropy_loss_weight > 0.0:
+            entropy_loss = -entropy_loss_weight * Categorical(pi).entropy().sum()
+            loss = loss + entropy_loss
 
     else:
         pred = model(byte_tokens, word_tokens, encoded_metadata)
@@ -153,7 +156,7 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     return loss
 
 
-def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clusterer=None, mdn_mixture=False):
+def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clusterer=None, mdn_mixture=False, no_bins=5):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
     if classify:
@@ -174,9 +177,15 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
             pred = predict(pi, mu, sigma, method='mixture')
         else:
             pred = predict(pi, mu, sigma, method='pi')
-        #print(samples.shape, ' samples')
-        #pred = torch.mean(samples, dim=-1)
-        #pred=samples
+
+        #calc condifence
+        max_prob, max_idx = torch.max(pi, dim=1)
+        max_val = np.max(max_prob.cpu().detach().numpy())
+        min_val = np.min(max_prob.cpu().detach().numpy())
+        bins = np.linspace(min_val, max_val, no_bins)
+        confidence = np.digitize(max_prob.cpu().detach().numpy(), bins)
+
+        #entropy = Categorical(pi).entropy()
     else:
         pred = model(byte_tokens, word_tokens, encoded_metadata)
 
@@ -188,13 +197,24 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
         dist_pred = torch.FloatTensor(np.array([clusterer.cluster_centers_[p-1,:] for p in torch.argmax(pred, 1).detach().cpu().numpy().tolist()])).to(device)
         #dist_pred = torch.FloatTensor(np.array([clusterer.weighted_cluster_centroid(p-1) if p !=0 else clusterer.weighted_cluster_centroid(p) for p in torch.argmax(pred, 1).detach().cpu().numpy().tolist()])).to(device)
         distance = gc_distance(coords, dist_pred)
+    elif mdn:
+        distance = gc_distance(coords, pred)
+        #calc distance per confidence level
+        confidence_distance = {}
+        for confidence_level in list(set(confidence)):
+            item_selector = []
+            for c in confidence:
+                if c == confidence_level:
+                    item_selector.append(True)
+                else:
+                    item_selector.append(False)
+            selected_coords, selected_preds = coords[item_selector, :], pred[item_selector, :]
+            confidence_distance[confidence_level] = gc_distance(selected_coords, selected_preds)
     else:
         distance = gc_distance(coords, pred)
     if classify:
         loss = criterion(pred, cluster_labels)
     else:
-        #print(pred.shape, ' pred.shape')
-        #print(coords.shape, ' coords.shape')
         loss = criterion(pred, coords)
 
     if generate:
@@ -203,8 +223,10 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
         tweet = bytes(byte_tokens.input_ids[0, :-1] - 3).decode('utf-8')
         lat, long = pred[0][0], pred[0][1]
         sys.stdout.write(f"{tweet}\t({lat}, {long})\n")
-
-    return loss, distance
+    if mdn:
+        return loss, distance, confidence_distance
+    else:
+        return loss, distance
 
 
 def split_users(df, percentage_users=0.10):
