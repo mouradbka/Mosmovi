@@ -144,7 +144,8 @@ def main():
                 for confidence_level, corresp_val_distance_list in distances_confidence.items():
                     val_mean_c = np.nan_to_num(np.mean(corresp_val_distance_list))
                     val_median_c = np.nan_to_num(np.median(corresp_val_distance_list))
-                    wandb.log({"conf: " + str(confidence_level) + " - " + "val_mean": val_mean_c, "val_median": val_median_c})
+                    wandb.log({"conf: " + str(confidence_level) + " - " + "val_mean": val_mean_c,
+                               "conf: " + str(confidence_level) + " - " +"val_median": val_median_c})
                     logger.info(f"conf: " + str(confidence_level) + " - " + f"val_mean: {val_mean_c}")
                     logger.info(f"conf: " + str(confidence_level) + " - " + f"val_median: {val_median_c}")
 
