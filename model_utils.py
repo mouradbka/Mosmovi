@@ -99,7 +99,8 @@ class MDN(nn.Module):
         pi=F.softmax(pi, dim=-1)
         mu=self.mu_h(x)
         mu=mu.view(-1,self.dim_out,self.num_latent)
-        sigma=self.elu(torch.exp(self.sigma_h(x))) + 1
+        #sigma=self.elu(torch.exp(self.sigma_h(x))) + 1
+        sigma=self.elu(self.sigma_h(x)) + 1
         sigma=sigma.view(-1,self.dim_out,self.num_latent)
         return pi,mu,sigma
 
