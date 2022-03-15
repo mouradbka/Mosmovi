@@ -64,7 +64,7 @@ def gc_distance(gold, pred):
     return torch.nan_to_num(torch.acos(torch.inner(n_gold.to(device), n_pred.to(device)).diag()) * EARTH_RADIUS)
 
 
-def pad_chars(instance, tokenizers, max_length=-1, classify=False):
+def pad_chars(instance, tokenizers, max_length=-1):
     tokens, coords, metadata = zip(*instance)
     byte_tokenizer, word_tokenizer = tokenizers
 
@@ -90,15 +90,9 @@ def pad_chars(instance, tokenizers, max_length=-1, classify=False):
         encoded_metadata = None
 
     encoded_tokens = (byte_tokens, word_tokens)
-    if classify:
-        cluster_labels = list(zip(*coords))[1]
-        coords = list(zip(*coords))[0]
-        encoded_labels = torch.stack(cluster_labels)
-        encoded_coords = torch.stack(coords)
-        return encoded_tokens, (encoded_coords, encoded_labels), encoded_metadata
-    else:
-        encoded_coords = torch.stack(coords)
-        return encoded_tokens, encoded_coords , encoded_metadata
+
+    encoded_coords = torch.stack(coords)
+    return encoded_tokens, encoded_coords , encoded_metadata
 
 
 def subsample_datasets(train_dataset, val_dataset, ratio):
@@ -110,14 +104,11 @@ def subsample_datasets(train_dataset, val_dataset, ratio):
 
 
 def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulation_steps,
-          mdn, reg_penalty, entropy_loss_weight, classify, device):
+          mdn, reg_penalty, entropy_loss_weight, device):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
-    #if it's classification, use cluster label
-    if classify:
-        coords = coords[1].to(device)
-    else:
-        coords = coords.to(device)
+    coords = coords.to(device)
+
     if encoded_metadata is not None:
         encoded_metadata = [i.to(device) for i in encoded_metadata]
 
@@ -156,12 +147,9 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     return loss
 
 
-def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clusterer=None, mdn_mixture=False, no_bins=5):
+def evaluate(batch, model, criterion, mdn, device, generate=False, mdn_mixture=False, no_bins=5):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
-    if classify:
-        coords, cluster_labels = coords[0], coords[1]
-        cluster_labels = cluster_labels.to(device)
 
     coords = coords.to(device)
     if encoded_metadata is not None:
@@ -192,12 +180,7 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
     if len(pred.shape) == 1:
         pred = pred[None, :]
 
-    if clusterer:
-        #argmax of softmax probs, then convert to int then subtract one to get original clustering ids
-        dist_pred = torch.FloatTensor(np.array([clusterer.cluster_centers_[p-1,:] for p in torch.argmax(pred, 1).detach().cpu().numpy().tolist()])).to(device)
-        #dist_pred = torch.FloatTensor(np.array([clusterer.weighted_cluster_centroid(p-1) if p !=0 else clusterer.weighted_cluster_centroid(p) for p in torch.argmax(pred, 1).detach().cpu().numpy().tolist()])).to(device)
-        distance = gc_distance(coords, dist_pred)
-    elif mdn:
+    if mdn:
         distance = gc_distance(coords, pred)
         #calc distance per confidence level
         confidence_distance = {}
@@ -212,10 +195,8 @@ def evaluate(batch, model, criterion, mdn, classify, device, generate=False, clu
             confidence_distance[confidence_level] = gc_distance(selected_coords, selected_preds)
     else:
         distance = gc_distance(coords, pred)
-    if classify:
-        loss = criterion(pred, cluster_labels)
-    else:
-        loss = criterion(pred, coords)
+
+    loss = criterion(pred, coords)
 
     if generate:
         assert len(byte_tokens.input_ids) == len(pred) == 1

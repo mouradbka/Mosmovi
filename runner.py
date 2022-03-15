@@ -49,8 +49,6 @@ def main():
     parser.add_argument('--num_confidence_bins', type=int, default=5)
     parser.add_argument('--num_gausians', type=int, default=10)
     parser.add_argument('--use_mixture', action='store_true', default=False)
-    parser.add_argument('--classify', action='store_true', default=False)
-    parser.add_argument('--cluster_datapoint_ratio', type=int, default=50)
 
     args = parser.parse_args()
 
@@ -58,8 +56,7 @@ def main():
     wandb.init(project='mosmovi_1', config=args, name=args.run_name)
 
 
-    tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata,
-                                 classify=args.classify, cluster_datapoint_ratio=args.cluster_datapoint_ratio)
+    tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata)
 
 
     if args.split_uids:
@@ -86,10 +83,8 @@ def main():
     val_iter = tqdm.tqdm(_val_iter)
 
     model_arch = utils.get_arch(args.arch)
-    if args.classify:
-        model = model_arch(args, int(tweet_dataset.clusterer.labels_.max())+2)
-    else:
-        model = model_arch(args)
+
+    model = model_arch(args)
     model.to(device)
 
     num_training_steps = args.num_epochs * len(train_iter)
@@ -104,7 +99,7 @@ def main():
         for i, batch in enumerate(train_iter):
             train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion,
                                      args.gradient_accumulation_steps, args.mdn, args.reg_penalty, args.entropy_loss_weight,
-                                     classify=args.classify, device=device)
+                                    device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
 
@@ -115,9 +110,7 @@ def main():
             for batch in val_iter:
 
                 eval_stats = utils.evaluate(batch, model, criterion, args.mdn,
-                                                        classify=args.classify,
                                                         device=device,
-                                                        clusterer=tweet_dataset.clusterer,
                                                         mdn_mixture=args.use_mixture,
                                                         no_bins=args.num_confidence_bins)
                 if args.mdn:

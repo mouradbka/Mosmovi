@@ -27,7 +27,6 @@ class CharModel(nn.Module):
 class CharLSTMModel(nn.Module):
     def __init__(self, args):
         super(CharLSTMModel, self).__init__()
-        self.classify = args.classify
         self._token_embed = nn.Embedding(256, 150, 255)
         self._lstm = nn.LSTM(150, 150, 2, bidirectional=True, batch_first=True)
         self._ffn = nn.Linear(300, 2)
@@ -240,7 +239,6 @@ class CompositeModel(nn.Module):
 
     def __init__(self, args, no_classes=None):
         super(CompositeModel, self).__init__()
-        self.classify = args.classify
         self.use_metadata = args.use_metadata
         self.arch = args.arch
         if args.arch == 'bert':
@@ -262,9 +260,6 @@ class CompositeModel(nn.Module):
         if args.mdn:
             self._head = MDN(concat_dim,2,args.num_gausians)
             #self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
-        elif args.classify:
-            self._head = nn.Linear(100, no_classes)
-            self._reduce = nn.Linear(concat_dim, 100)
         else:
             self._head = nn.Linear(concat_dim, 2)
             #self._reduce = nn.Linear(concat_dim, 100)
@@ -282,12 +277,6 @@ class CompositeModel(nn.Module):
             concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
         else:
             concat = text_encoding
-        if self.classify:
-            print(concat.shape)
-            reduced = self._reduce(F.dropout(concat, p=0.2))
-            output = self._head(reduced)
-            return output
-        else:
-            #return self._head((self._reduce(F.dropout(concat, p=0.2))))
-            return self._head(F.dropout(concat, p=0.2))
+        #return self._head((self._reduce(F.dropout(concat, p=0.2))))
+        return self._head(F.dropout(concat, p=0.2))
 
