@@ -170,7 +170,6 @@ def evaluate(batch, model, criterion, mdn, device, generate=False, mdn_mixture=F
         #calc condifence
         if entropy_confidence:
             entropy = Categorical(pi).entropy()
-            print(entropy, ' en')
             max_val = np.max(entropy.cpu().detach().numpy())
             min_val = np.min(entropy.cpu().detach().numpy())
             bins = np.linspace(max_val, min_val, no_bins)
