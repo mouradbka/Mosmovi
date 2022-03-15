@@ -47,6 +47,7 @@ def main():
     parser.add_argument('--reg_penalty', type=float, default=0.0)
     parser.add_argument('--entropy_loss_weight', type=float, default=0.0)
     parser.add_argument('--num_confidence_bins', type=int, default=5)
+    parser.add_argument('--entropy_confidence', action='store_true', default=False)
     parser.add_argument('--num_gausians', type=int, default=10)
     parser.add_argument('--use_mixture', action='store_true', default=False)
 
@@ -112,7 +113,8 @@ def main():
                 eval_stats = utils.evaluate(batch, model, criterion, args.mdn,
                                                         device=device,
                                                         mdn_mixture=args.use_mixture,
-                                                        no_bins=args.num_confidence_bins)
+                                                        no_bins=args.num_confidence_bins,
+                                                        entropy_confidence=args.entropy_confidence)
                 if args.mdn:
                     val_loss, val_distance, val_distance_confidence = eval_stats
                     for confidence_level, corresp_val_distance in val_distance_confidence.items():

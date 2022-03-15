@@ -5,6 +5,7 @@ import random
 import torch
 import torch.nn.functional as F
 from torch.distributions import Categorical
+from scipy.stats import kurtosis
 
 from torch import nn, optim
 from models import *
@@ -147,7 +148,7 @@ def train(i, batch, model, optimizer, scheduler, criterion, gradient_accumulatio
     return loss
 
 
-def evaluate(batch, model, criterion, mdn, device, generate=False, mdn_mixture=False, no_bins=5):
+def evaluate(batch, model, criterion, mdn, device, generate=False, mdn_mixture=False, entropy_confidence=False, no_bins=5):
     encoded_tokens, coords, encoded_metadata = batch
     encoded_tokens = [i.to(device) for i in encoded_tokens]
 
@@ -167,13 +168,21 @@ def evaluate(batch, model, criterion, mdn, device, generate=False, mdn_mixture=F
             pred = predict(pi, mu, sigma, method='pi')
 
         #calc condifence
-        max_prob, max_idx = torch.max(pi, dim=1)
-        max_val = np.max(max_prob.cpu().detach().numpy())
-        min_val = np.min(max_prob.cpu().detach().numpy())
-        bins = np.linspace(min_val, max_val, no_bins)
-        confidence = np.digitize(max_prob.cpu().detach().numpy(), bins)
+        if entropy_confidence:
+            entropy = Categorical(pi).entropy()
+            print(entropy, ' en')
+            max_val = np.max(entropy.cpu().detach().numpy())
+            min_val = np.min(entropy.cpu().detach().numpy())
+            bins = np.linspace(max_val, min_val, no_bins)
+            confidence = np.digitize(entropy.cpu().detach().numpy(), bins)
+        else:
+            max_prob, max_idx = torch.max(pi, dim=1)
+            max_val = np.max(max_prob.cpu().detach().numpy())
+            min_val = np.min(max_prob.cpu().detach().numpy())
+            bins = np.linspace(min_val, max_val, no_bins)
+            confidence = np.digitize(max_prob.cpu().detach().numpy(), bins)
 
-        #entropy = Categorical(pi).entropy()
+
     else:
         pred = model(byte_tokens, word_tokens, encoded_metadata)
 
