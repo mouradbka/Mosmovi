@@ -263,7 +263,7 @@ class CompositeModel(nn.Module):
 
         if args.mdn:
             self._head = MDN(concat_dim,2,args.num_gausians)
-            #self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
+            self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
         else:
             self._head = nn.Linear(concat_dim, 2)
             #self._reduce = nn.Linear(concat_dim, 100)
@@ -281,6 +281,6 @@ class CompositeModel(nn.Module):
             concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
         else:
             concat = text_encoding
-        #return self._head((self._reduce(F.dropout(concat, p=0.2))))
-        return self._head(F.dropout(concat, p=0.2))
+        return self._head((self._reduce(F.dropout(concat, p=0.2))))
+        #return self._head(F.dropout(concat, p=0.2))
 
