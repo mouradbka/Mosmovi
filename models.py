@@ -180,6 +180,8 @@ class RBFLayer(nn.Module):
         self.centres = nn.Parameter(torch.Tensor(self.out_features, self.in_features))
         self.log_sigmas = nn.Parameter(torch.Tensor(self.out_features))
         self.reset_parameters()
+        self.elu = nn.ELU()
+
 
     def reset_parameters(self):
         nn.init.normal_(self.centres, 0, 1)
@@ -189,7 +191,9 @@ class RBFLayer(nn.Module):
         size = (time.size(0), self.out_features, self.in_features)
         x = time.unsqueeze(1).expand(size)
         c = self.centres.unsqueeze(0).expand(size)
-        distances = (x - c).pow(2).sum(-1).pow(0.5) / torch.exp(self.log_sigmas).unsqueeze(0)
+        #distances = (x - c).pow(2).sum(-1).pow(0.5) / torch.exp(self.log_sigmas).unsqueeze(0)
+        self.log_sigmas = self.elu(self.log_sigmas) + 1
+        distances = (x - c).pow(2).sum(-1).pow(0.5) / self.log_sigmas.unsqueeze(0)
         phi = torch.exp(-1 * distances.pow(2))
         return phi
 
