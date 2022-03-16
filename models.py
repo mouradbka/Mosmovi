@@ -263,7 +263,9 @@ class CompositeModel(nn.Module):
 
         if args.mdn:
             self._head = MDN(concat_dim,2,args.num_gausians)
-            self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
+            #self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
+            self._reduce = nn.Linear(concat_dim, 100)
+
         else:
             self._head = nn.Linear(concat_dim, 2)
             #self._reduce = nn.Linear(concat_dim, 100)
