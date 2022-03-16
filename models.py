@@ -196,7 +196,7 @@ class RBFLayer(nn.Module):
         log_sigmas = self.elu(self.log_sigmas) + 1
         distances = (x - c).pow(2).sum(-1).pow(0.5) / log_sigmas.unsqueeze(0)
         phi = torch.exp(-1 * distances.pow(2))
-        wandb.log({"phi": phi.norm().item()})
+        wandb.log({"phi": phi.norm().item(), "sigmas": self.log_sigmas.norm().item()})
         return phi
 
 
