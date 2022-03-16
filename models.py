@@ -283,6 +283,6 @@ class CompositeModel(nn.Module):
             concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
         else:
             concat = text_encoding
-        return self._head((self._reduce(F.dropout(concat, p=0.2))))
-        #return self._head(F.dropout(concat, p=0.2))
+        #return self._head((self._reduce(F.dropout(concat, p=0.2))))
+        return self._head(F.dropout(concat, p=0.2))
 
