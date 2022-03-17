@@ -245,6 +245,7 @@ class CompositeModel(nn.Module):
 
     def __init__(self, args, no_classes=None):
         super(CompositeModel, self).__init__()
+        self.args = args
         self.use_metadata = args.use_metadata
         self.arch = args.arch
         if args.arch == 'bert':
@@ -286,5 +287,5 @@ class CompositeModel(nn.Module):
         else:
             concat = text_encoding
         #return self._head((self._reduce(F.dropout(concat, p=0.2))))
-        return self._head(F.dropout(concat, p=args.dropout))
+        return self._head(F.dropout(concat, p=self.args.dropout))
 
