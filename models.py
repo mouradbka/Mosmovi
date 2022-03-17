@@ -286,5 +286,5 @@ class CompositeModel(nn.Module):
         else:
             concat = text_encoding
         #return self._head((self._reduce(F.dropout(concat, p=0.2))))
-        return self._head(F.dropout(concat, p=0.2))
+        return self._head(F.dropout(concat, p=args.dropout))
 
