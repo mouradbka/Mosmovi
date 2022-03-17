@@ -257,11 +257,12 @@ class CompositeModel(nn.Module):
             self._encoder = CharLSTMModel(args)
             concat_dim = self._encoder._lstm.hidden_size * 2
 
+        concat_dim = 0
         if args.use_metadata:
             self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
             self._author_rbf = RBFLayer(encoding_dim=args.author_rbf_dim)
             self._description_lstm = CharLSTMModel(args)
-            concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
+            concat_dim += args.tweet_rbf_dim + args.author_rbf_dim # + (self._description_lstm._lstm.hidden_size * 2)
 
         if args.mdn:
             self._head = MDN(concat_dim,2,args.num_gausians)
@@ -273,18 +274,19 @@ class CompositeModel(nn.Module):
             #self._reduce = nn.Linear(concat_dim, 100)
 
     def forward(self, byte_tokens, word_tokens, metadata):
-        if self.arch == 'bert' or self.arch == 'byt5':
-            text_encoding = self._encoder(byte_tokens, word_tokens)
-        else:
-            text_encoding = self._encoder(byte_tokens, word_tokens, features_only=True)
+        # if self.arch == 'bert' or self.arch == 'byt5':
+        #     text_encoding = self._encoder(byte_tokens, word_tokens)
+        # else:
+        #     text_encoding = self._encoder(byte_tokens, word_tokens, features_only=True)
         if self.use_metadata:
             tweet_time, author_time, author_desc = metadata
             encoded_tweet_time = self._tweet_rbf(tweet_time)
             encoded_author_time = self._author_rbf(author_time)
-            encoded_desc = self._description_lstm(author_desc, None, features_only=True)
-            concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
-        else:
-            concat = text_encoding
+            # encoded_desc = self._description_lstm(author_desc, None, features_only=True)
+            # concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
+            concat = torch.cat([encoded_tweet_time, encoded_author_time], dim=-1)
+        # else:
+        #     concat = text_encoding
         #return self._head((self._reduce(F.dropout(concat, p=0.2))))
         return self._head(F.dropout(concat, p=0.2))
 
