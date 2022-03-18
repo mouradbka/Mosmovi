@@ -25,6 +25,9 @@ logging.basicConfig(format='%(asctime)s %(message)s',level=logging.INFO)
 def main():
     parser = ArgumentParser()
     parser.add_argument('--model_path', required=True, type=str, action='store')
+    parser.add_argument('--arch', default='char_pool',
+                        choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn',
+                                 'bert', 'byt5'])
     parser.add_argument('--data_dir', required=True, type=str, action='store')
     parser.add_argument('--generate', action='store_true')
     parser.add_argument('--use_metadata', action='store_true')
