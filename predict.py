@@ -34,10 +34,12 @@ def main():
     parser.add_argument('--generate', action='store_true')
     parser.add_argument('--use_metadata', action='store_true')
     parser.add_argument('--mdn', action='store_true', default=False)
+    parser.add_argument('--reduce_layer', action='store_true', default=False)
     parser.add_argument('--num_gausians', type=int, default=10)
     parser.add_argument('--use_mixture', action='store_true', default=False)
     parser.add_argument('--num_confidence_bins', type=int, default=5)
     parser.add_argument('--entropy_confidence', action='store_true', default=False)
+
 
     args = parser.parse_args()
 

@@ -43,6 +43,7 @@ def main():
     parser.add_argument('--freeze_layers', type=int, default=0)
     parser.add_argument('--tweet_rbf_dim', type=int, default=50)
     parser.add_argument('--author_rbf_dim', type=int, default=10)
+    parser.add_argument('--reduce_layer', action='store_true', default=False)
     parser.add_argument('--mdn', action='store_true', default=False)
     parser.add_argument('--reg_penalty', type=float, default=0.0)
     parser.add_argument('--entropy_loss_weight', type=float, default=0.0)

@@ -248,6 +248,8 @@ class CompositeModel(nn.Module):
         self.args = args
         self.use_metadata = args.use_metadata
         self.arch = args.arch
+        self.reduce_layer = args.reduce_layer
+
         if args.arch == 'bert':
             self._encoder = BertRegressor(args)
             concat_dim = self._encoder._model.config.hidden_size
@@ -264,14 +266,12 @@ class CompositeModel(nn.Module):
             self._description_lstm = CharLSTMModel(args)
             concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
 
+        self._reduce = nn.Linear(concat_dim, 100)
+
         if args.mdn:
             self._head = MDN(concat_dim,2,args.num_gausians)
-            #self._reduce = nn.Sequential(nn.Linear(concat_dim, 100), nn.Tanh())
-            self._reduce = nn.Linear(concat_dim, 100)
-
         else:
             self._head = nn.Linear(concat_dim, 2)
-            #self._reduce = nn.Linear(concat_dim, 100)
 
     def forward(self, byte_tokens, word_tokens, metadata):
         if self.arch == 'bert' or self.arch == 'byt5':
@@ -286,6 +286,8 @@ class CompositeModel(nn.Module):
             concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
         else:
             concat = text_encoding
-        return self._head((self._reduce(F.dropout(concat, p=self.args.dropout))))
-        #return self._head(F.dropout(concat, p=self.args.dropout))
+        if self.reduce_layer:
+            return self._head((self._reduce(F.dropout(concat, p=self.args.dropout))))
+        else:
+            return self._head(F.dropout(concat, p=self.args.dropout))
 
