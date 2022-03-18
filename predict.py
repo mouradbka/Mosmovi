@@ -28,6 +28,8 @@ def main():
     parser.add_argument('--arch', default='char_pool',
                         choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn',
                                  'bert', 'byt5'])
+    parser.add_argument('--dropout', type=float, default=0.3)
+    parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--data_dir', required=True, type=str, action='store')
     parser.add_argument('--generate', action='store_true')
     parser.add_argument('--use_metadata', action='store_true')
@@ -47,7 +49,7 @@ def main():
     tokenizers = (byte_tokenizer, word_tokenizer)
 
     collate_fn = lambda instance: utils.pad_chars(instance, tokenizers, -1)
-    test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=1, collate_fn=collate_fn))
+    test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=args.batch_size, collate_fn=collate_fn))
 
     state = torch.load(args.model_path, map_location=device)
 
