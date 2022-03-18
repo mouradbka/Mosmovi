@@ -266,8 +266,7 @@ class CompositeModel(nn.Module):
             self._description_lstm = CharLSTMModel(args)
             concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
 
-        if self.reduce_layer:
-            self._reduce = nn.Linear(concat_dim, 100)
+        self._reduce = nn.Linear(concat_dim, 100)
 
         if args.mdn:
             self._head = MDN(concat_dim,2,args.num_gausians)
