@@ -51,6 +51,8 @@ def main():
     parser.add_argument('--entropy_confidence', action='store_true', default=False)
     parser.add_argument('--num_gausians', type=int, default=10)
     parser.add_argument('--use_mixture', action='store_true', default=False)
+    parser.add_argument('--confidence_validation_criterion', action='store_true', default=False)
+
 
     args = parser.parse_args()
 
@@ -146,7 +148,9 @@ def main():
                     logger.info(f"conf: " + str(confidence_level) + " - " + f"val_median: {val_median_c}")
 
 
-            # save model
+            # save model, use highest conf prediction scores if flag on
+            if args.mdn and args.confidence_validation_criterion:
+                val_mean = val_mean_c
             is_best = val_mean < best_mean
             best_mean = min(val_mean, best_mean)
 
