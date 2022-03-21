@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 logger = logging.getLogger()
 
 class TweetDataset(Dataset):
-    def __init__(self: Dataset, data_dir: str, char_max_length=1014, use_metadata=True) -> None:
+    def __init__(self: Dataset, data_dir: str, char_max_length=1014, use_metadata=True, subsample=False) -> None:
         self.tweet_tokens = []
         self.tweet_time = []
         self.author_time = []
@@ -19,7 +19,10 @@ class TweetDataset(Dataset):
         self.use_metadata = use_metadata
 
         for fname in glob.glob(f"{data_dir}/*"):
-            df = pd.read_csv(fname, sep=';', header=0)[:100000]
+            df = pd.read_csv(fname, sep=';', header=0)
+            if subsample:
+                df = df[:100000]
+
             self.fnames.extend([fname] * len(df))
             self.tweet_tokens.extend([str(i) for i in df.text.tolist()])
             self.uids.extend(df.author_id.tolist())
