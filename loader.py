@@ -19,7 +19,7 @@ class TweetDataset(Dataset):
         self.use_metadata = use_metadata
 
         for fname in glob.glob(f"{data_dir}/*"):
-            df = pd.read_csv(fname, sep=';', header=0)
+            df = pd.read_csv(fname, sep=';', header=0)[:100000]
             self.fnames.extend([fname] * len(df))
             self.tweet_tokens.extend([str(i) for i in df.text.tolist()])
             self.uids.extend(df.author_id.tolist())
