@@ -25,21 +25,18 @@ logging.basicConfig(format='%(asctime)s %(message)s',level=logging.INFO)
 def main():
     parser = ArgumentParser()
     parser.add_argument('--model_path', required=True, type=str, action='store')
-    parser.add_argument('--arch', default='char_pool',
+    parser.add_argument('--arch', default='char_lstm',
                         choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn',
                                  'bert', 'byt5'])
     parser.add_argument('--dropout', type=float, default=0.3)
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--data_dir', required=True, type=str, action='store')
     parser.add_argument('--generate', action='store_true')
-    parser.add_argument('--use_metadata', action='store_true')
     parser.add_argument('--mdn', action='store_true', default=False)
     parser.add_argument('--reduce_layer', action='store_true', default=False)
-    parser.add_argument('--num_gausians', type=int, default=10)
     parser.add_argument('--use_mixture', action='store_true', default=False)
     parser.add_argument('--num_confidence_bins', type=int, default=5)
     parser.add_argument('--entropy_confidence', action='store_true', default=False)
-
 
     args = parser.parse_args()
 
@@ -56,8 +53,10 @@ def main():
     state = torch.load(args.model_path, map_location=device)
 
     criterion = state['criterion']
-
     model_arch = utils.get_arch(state['arch'])
+    if args.mdn:
+        args.num_gaussians = state['state_dict']['_head.pi_h.weight'].size(0)
+
     model = model_arch(args)
     model.load_state_dict(state['state_dict'])
     model.to(device)
@@ -68,24 +67,18 @@ def main():
         distances_confidence = defaultdict(list)
 
         for batch in test_iter:
-            #test_loss, test_distance = utils.evaluate(batch, model, criterion, device=device, generate=args.generate)
-            eval_stats = utils.evaluate(batch, model, criterion, args.mdn,
-                                        device=device,
-                                        mdn_mixture=args.use_mixture,
-                                        no_bins=args.num_confidence_bins,
-                                        entropy_confidence=args.entropy_confidence,
-                                        generate = args.generate)
+            eval_stats = utils.evaluate(batch, model, criterion, args, generate=args.generate, device=device)
             if args.mdn:
-                test_loss, test_distance, test_distance_confidence = eval_stats
+                test_loss, (test_distance, test_distance_confidence) = eval_stats
                 for confidence_level, corresp_test_distance in test_distance_confidence.items():
                     distances_confidence[int(confidence_level)].extend(corresp_test_distance.tolist())
 
             else:
                 test_loss, test_distance = eval_stats
 
-
             test_iter.set_description(f"test loss: {test_loss.item()}")
             distances.extend(test_distance.tolist())
+
         logger.info(f"test_mean: {np.mean(distances)}, test_median: {np.median(distances)}")
 
         if args.mdn:

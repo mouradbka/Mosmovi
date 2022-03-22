@@ -29,8 +29,8 @@ class CharLSTMModel(nn.Module):
     def __init__(self, args):
         super(CharLSTMModel, self).__init__()
         self._token_embed = nn.Embedding(256, 150, 255)
-        self._lstm = nn.LSTM(150, 150, 2, bidirectional=True, batch_first=True)
-        self._ffn = nn.Linear(300, 2)
+        self._lstm = nn.LSTM(150, 15, 2, bidirectional=True, batch_first=True)
+        self._ffn = nn.Linear(30, 2)
 
     def forward(self, byte_tokens, word_tokens, features_only=False):
         input_ids = byte_tokens.input_ids
@@ -108,6 +108,7 @@ class CharCNNModel(nn.Module):
         # final linear layer
         x = self._fc3(x)
         return x
+
 
 class CharLSTMCNNModel(nn.Module):
     def __init__(self, args):
@@ -246,7 +247,6 @@ class CompositeModel(nn.Module):
     def __init__(self, args, no_classes=None):
         super(CompositeModel, self).__init__()
         self.args = args
-        self.use_metadata = args.use_metadata
         self.arch = args.arch
         self.reduce_layer = args.reduce_layer
 
@@ -260,40 +260,25 @@ class CompositeModel(nn.Module):
             self._encoder = CharLSTMModel(args)
             concat_dim = self._encoder._lstm.hidden_size * 2
 
-        if args.use_metadata:
-            self._tweet_rbf = RBFLayer(encoding_dim=args.tweet_rbf_dim)
-            self._author_rbf = RBFLayer(encoding_dim=args.author_rbf_dim)
-            self._description_lstm = CharLSTMModel(args)
-            concat_dim += args.tweet_rbf_dim + args.author_rbf_dim + (self._description_lstm._lstm.hidden_size * 2)
-
         self._reduce = nn.Linear(concat_dim, 100)
         if args.reduce_layer:
             if args.mdn:
-                self._head = MDN(100,2,args.num_gausians)
+                self._head = MDN(100, 2, args.num_gaussians)
             else:
                 self._head = nn.Linear(100, 2)
         else:
             if args.mdn:
-                self._head = MDN(concat_dim, 2, args.num_gausians)
+                self._head = MDN(concat_dim, 2, args.num_gaussians)
             else:
                 self._head = nn.Linear(concat_dim, 2)
 
-
-    def forward(self, byte_tokens, word_tokens, metadata):
+    def forward(self, byte_tokens, word_tokens):
         if self.arch == 'bert' or self.arch == 'byt5':
             text_encoding = self._encoder(byte_tokens, word_tokens)
         else:
             text_encoding = self._encoder(byte_tokens, word_tokens, features_only=True)
-        if self.use_metadata:
-            tweet_time, author_time, author_desc = metadata
-            encoded_tweet_time = self._tweet_rbf(tweet_time)
-            encoded_author_time = self._author_rbf(author_time)
-            encoded_desc = self._description_lstm(author_desc, None, features_only=True)
-            concat = torch.cat([text_encoding, encoded_desc, encoded_tweet_time, encoded_author_time], dim=-1)
-        else:
-            concat = text_encoding
         if self.reduce_layer:
-            return self._head(self._reduce(F.dropout(concat, p=self.args.dropout)))
+            return self._head(self._reduce(F.dropout(text_encoding, p=self.args.dropout)))
         else:
-            return self._head(F.dropout(concat, p=self.args.dropout))
+            return self._head(F.dropout(text_encoding, p=self.args.dropout))
 

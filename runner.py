@@ -19,45 +19,52 @@ logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 def main():
     parser = ArgumentParser()
     # script
-    parser.add_argument('--data_dir', default='./data', action='store')
+    parser.add_argument('--data_dir', default='./data_tiny', action='store')
     parser.add_argument('--arch', default='char_pool',
                         choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn',
                                  'bert', 'byt5'])
     parser.add_argument('--run_name', default=None)
-    parser.add_argument('--save_prefix', default='model')
-    parser.add_argument('--use_metadata', action='store_true')
-    parser.add_argument('--subsample', action='store_true')
+    parser.add_argument('--save_prefix', default='model', help='Path to save the model to')
+    parser.add_argument('--subsample', action='store_true', help='Use a maximum of 100k samples per location')
     # data
-    parser.add_argument('--split_uids', action='store_true')
-    parser.add_argument('--max_seq_len', default=-1, type=int)
-    parser.add_argument('--subsample_ratio', default=-1)
+    parser.add_argument('--split_uids', action='store_true', help='Hold-out train user IDs when generating validation')
+    parser.add_argument('--max_seq_len', default=-1, type=int, help='Truncate tweet text to length; -1 to disable')
+    parser.add_argument('--subsample_ratio', default=-1, help='Subsample dataset to this ratio')
     # model
-    parser.add_argument('--loss', default='mse', choices=['mse', 'l1', 'smooth_l1', 'cross_entropy'])
+    parser.add_argument('--loss', default='mse', choices=['mse', 'l1', 'smooth_l1'])
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'adamw', 'sgd'])
-    parser.add_argument('--gradient_accumulation_steps', type=int, default=8)
-    parser.add_argument('--scheduler', default='constant', choices=['linear', 'constant'])
-    parser.add_argument('--warmup_ratio', default=0.2, type=float)
-    parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--dropout', type=float, default=0.3)
-    parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--num_epochs', type=int, default=10)
-    parser.add_argument('--freeze_layers', type=int, default=0)
-    parser.add_argument('--tweet_rbf_dim', type=int, default=50)
-    parser.add_argument('--author_rbf_dim', type=int, default=10)
-    parser.add_argument('--reduce_layer', action='store_true', default=False)
-    parser.add_argument('--mdn', action='store_true', default=False)
-    parser.add_argument('--reg_penalty', type=float, default=0.0)
-    parser.add_argument('--entropy_loss_weight', type=float, default=0.0)
-    parser.add_argument('--num_confidence_bins', type=int, default=5)
-    parser.add_argument('--entropy_confidence', action='store_true', default=False)
-    parser.add_argument('--num_gausians', type=int, default=10)
-    parser.add_argument('--use_mixture', action='store_true', default=False)
-    parser.add_argument('--confidence_validation_criterion', action='store_true', default=False)
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=8,
+                        help='Number of training steps to accumulate gradient over')
+    parser.add_argument('--scheduler', default='constant', choices=['linear', 'constant'],
+                        help="`linear' scales up the LR over `args.warmup_ratio' steps")
+    parser.add_argument('--warmup_ratio', default=0.2, type=float,
+                        help="Ratio of maximum training steps to scale LR over")
+    parser.add_argument('--lr', type=float, default=1e-4, help="Optimiser learning rate")
+    parser.add_argument('--dropout', type=float, default=0.3, help="Model dropout ratio")
+    parser.add_argument('--batch_size', type=int, default=128, help="Training batch size")
+    parser.add_argument('--num_epochs', type=int, default=10, help="Number of training epochs")
+    parser.add_argument('--freeze_layers', type=int, default=0,
+                        help="Freeze bottom `n' layers when fine-tuning BERT/ByT5-based models")
+    parser.add_argument('--reduce_layer', action='store_true', default=False, help="Add linear layer before output")
+    parser.add_argument('--mdn', action='store_true', default=False,
+                        help="Use Mixture Density Networks for confidence estimation")
+    parser.add_argument('--reg_penalty', type=float, default=0.0, help="Regularise MDN mean/variance parameters")
+    parser.add_argument('--entropy_loss_weight', type=float, default=0.0,
+                        help="Apply entropy loss to distribution over MDN means")
+    parser.add_argument('--num_confidence_bins', type=int, default=5, help="Number of confidence levels")
+    parser.add_argument('--entropy_confidence', action='store_true', default=False,
+                        help="Use entropy to estimate confidence (default: max. probabilities)")
+    parser.add_argument('--num_gaussians', type=int, default=10,
+                        help="Number of Gaussian distributions used by the MDN")
+    parser.add_argument('--use_mixture', action='store_true', default=False,
+                        help="Use weighted Gaussian means for prediction (default: max. probability weight)")
+    parser.add_argument('--confidence_validation_criterion', action='store_true', default=False,
+                        help="Save models based on score of the highest confidence level (default: average over all validation points)")
 
     args = parser.parse_args()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     wandb.init(project='mosmovi_1', config=args, name=args.run_name)
-    tweet_dataset = TweetDataset(data_dir=args.data_dir, use_metadata=args.use_metadata, subsample=args.subsample)
+    tweet_dataset = TweetDataset(data_dir=args.data_dir, subsample=args.subsample)
 
     if args.split_uids:
         gss = GroupShuffleSplit(n_splits=1, train_size=0.9)
@@ -96,10 +103,8 @@ def main():
     best_mean = 999999
     for epoch in range(args.num_epochs):
         model.train()
-        for i, batch in enumerate(train_iter):
-            train_loss = utils.train(i, batch, model, optimizer, scheduler, criterion,
-                                     args.gradient_accumulation_steps, args.mdn, args.reg_penalty, args.entropy_loss_weight,
-                                    device=device)
+        for batch in enumerate(train_iter):
+            train_loss = utils.train(batch, model, optimizer, scheduler, criterion, args, device=device)
             train_iter.set_description(f"train loss: {train_loss.item()}")
             wandb.log({"train_loss": train_loss.item()})
 
@@ -109,13 +114,9 @@ def main():
             distances_confidence = defaultdict(list)
             for batch in val_iter:
 
-                eval_stats = utils.evaluate(batch, model, criterion, args.mdn,
-                                                        device=device,
-                                                        mdn_mixture=args.use_mixture,
-                                                        no_bins=args.num_confidence_bins,
-                                                        entropy_confidence=args.entropy_confidence)
+                eval_stats = utils.evaluate(batch, model, criterion, args, device=device)
                 if args.mdn:
-                    val_loss, val_distance, val_distance_confidence = eval_stats
+                    val_loss, (val_distance, val_distance_confidence) = eval_stats
                     for confidence_level, corresp_val_distance in val_distance_confidence.items():
                         distances_confidence[int(confidence_level)].extend(corresp_val_distance.tolist())
 
@@ -125,7 +126,6 @@ def main():
                 val_iter.set_description(f"validation loss: {val_loss.item()}")
                 wandb.log({"val_loss": val_loss.item(), "val_distance": torch.mean(val_distance)})
                 distances.extend(val_distance.tolist())
-
 
             # log
             val_mean = np.nan_to_num(np.mean(distances))
@@ -139,10 +139,9 @@ def main():
                     val_mean_c = np.nan_to_num(np.mean(corresp_val_distance_list))
                     val_median_c = np.nan_to_num(np.median(corresp_val_distance_list))
                     wandb.log({"conf: " + str(confidence_level) + " - " + "val_mean": val_mean_c,
-                               "conf: " + str(confidence_level) + " - " +"val_median": val_median_c})
+                               "conf: " + str(confidence_level) + " - " + "val_median": val_median_c})
                     logger.info(f"conf: " + str(confidence_level) + " - " + f"val_mean: {val_mean_c}")
                     logger.info(f"conf: " + str(confidence_level) + " - " + f"val_median: {val_median_c}")
-
 
             # save model, use highest conf prediction scores if flag on
             if args.mdn and args.confidence_validation_criterion:
