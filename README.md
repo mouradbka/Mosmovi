@@ -45,7 +45,7 @@ The output should look something like:
 ```
 
 Note that confidences are calculated at a batch level, for scalability -- 
-therefore, while evaluating, we recommend setting the batch size as high as possible, given memory constraints.
+therefore, while evaluating, we recommend setting the batch size as high as possible (default: 1024), given memory constraints.
 
 ## Package requirements:
 ```

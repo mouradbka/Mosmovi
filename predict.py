@@ -29,7 +29,7 @@ def main():
                         choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn',
                                  'bert', 'byt5'])
     parser.add_argument('--dropout', type=float, default=0.3)
-    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--batch_size', type=int, default=1024)
     parser.add_argument('--data_dir', required=True, type=str, action='store')
     parser.add_argument('--generate', action='store_true')
     parser.add_argument('--mdn', action='store_true', default=False)
