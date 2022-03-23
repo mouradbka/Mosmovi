@@ -31,21 +31,25 @@ For both evaluation and generation, a higher confidence level implies that the m
 The output should look something like:
 
 ```
-> test_mean: 1245.8035673871632, test_median: 520.50927734375
-> conf: 0 - test_mean: 1794.3510998091208
-> conf: 0 - test_median: 1105.5209350585938
-> conf: 1 - test_mean: 1398.6538583901156
-> conf: 1 - test_median: 905.3485107421875
-> conf: 2 - test_mean: 1142.7724703758329
-> conf: 2 - test_median: 377.4914245605469
-> conf: 3 - test_mean: 1108.8275716482829
-> conf: 3 - test_median: 274.7439270019531
-> conf: 4 - test_mean: 746.1342747807423
-> conf: 4 - test_median: 223.4276580810547
+2022-03-23 16:08:18,243 test_mean: 1378.4861550968005, test_median: 359.2927551269531
+2022-03-23 16:08:18,244 conf: 0 - val_mean: 2566.2339115645077
+2022-03-23 16:08:18,244 conf: 0 - val_median: 2955.72021484375
+2022-03-23 16:08:18,298 conf: 1 - val_mean: 1318.2091678031566
+2022-03-23 16:08:18,299 conf: 1 - val_median: 1105.283203125
+2022-03-23 16:08:18,400 conf: 2 - val_mean: 1501.5972616800073
+2022-03-23 16:08:18,400 conf: 2 - val_median: 276.8335876464844
+2022-03-23 16:08:18,435 conf: 3 - val_mean: 1342.0475045738883
+2022-03-23 16:08:18,435 conf: 3 - val_median: 258.83815002441406
+2022-03-23 16:08:18,444 conf: 4 - val_mean: 454.0487183505631
+2022-03-23 16:08:18,444 conf: 4 - val_median: 173.92791748046875
 ```
 
-Note that confidences are calculated at a batch level, for scalability -- 
+Note that confidences are calculated at a batch level, for scalability (i.e. more accurate sample statistic estimates) --
 therefore, while evaluating, we recommend setting the batch size as high as possible (default: 1024), given memory constraints.
+
+We also recommend using the 'entropy_confidence' flag to for the calculation of confidence scores. We found this to
+lead to more consistent results, compared to the alternative which relies on the maximum Probablity instead of the entropy
+of the distribution.
 
 ## Package requirements:
 ```
