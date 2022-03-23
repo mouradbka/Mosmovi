@@ -38,7 +38,6 @@ def predict(pi, mu, sigma, method='pi', top_k=False):
         selected_mus = pis * mu
         return torch.sum(selected_mus, -1)
 
-
     elif method == 'pi':
         pis = torch.argmax(pi, axis=1)
         pis = pis.repeat(1, 2, 1).view(-1, 2, 1)

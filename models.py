@@ -29,8 +29,8 @@ class CharLSTMModel(nn.Module):
     def __init__(self, args):
         super(CharLSTMModel, self).__init__()
         self._token_embed = nn.Embedding(256, 150, 255)
-        self._lstm = nn.LSTM(150, 150, 2, bidirectional=True, batch_first=True)
-        self._ffn = nn.Linear(300, 2)
+        self._lstm = nn.LSTM(150, 15, 2, bidirectional=True, batch_first=True)
+        self._ffn = nn.Linear(30, 2)
 
     def forward(self, byte_tokens, word_tokens, features_only=False):
         input_ids = byte_tokens.input_ids
@@ -164,43 +164,6 @@ class CharLSTMCNNModel(nn.Module):
         return x
 
 
-class RBFLayerOld(nn.Module):
-    def __init__(self, encoding_dim):
-        super(RBFLayerOld, self).__init__()
-        self.rbf = nn.Parameter(torch.FloatTensor(range(encoding_dim)) / encoding_dim)
-        self.sigma = nn.Parameter(torch.ones(encoding_dim) * np.sqrt(0.5 / encoding_dim))
-
-    def forward(self, time):
-        return torch.exp((-(time - self.mu) ** 2) / (2 * (self.sigma ** 2)))
-
-
-class RBFLayer(nn.Module):
-    def __init__(self, encoding_dim):
-        super(RBFLayer, self).__init__()
-        self.in_features = 1
-        self.out_features = encoding_dim
-        self.centres = nn.Parameter(torch.Tensor(self.out_features, self.in_features))
-        self.log_sigmas = nn.Parameter(torch.Tensor(self.out_features))
-        self.reset_parameters()
-        self.elu = nn.ELU()
-
-
-    def reset_parameters(self):
-        nn.init.normal_(self.centres, 0, 1)
-        nn.init.constant_(self.log_sigmas, 0)
-
-    def forward(self, time):
-        size = (time.size(0), self.out_features, self.in_features)
-        x = time.unsqueeze(1).expand(size)
-        c = self.centres.unsqueeze(0).expand(size)
-        #distances = (x - c).pow(2).sum(-1).pow(0.5) / torch.exp(self.log_sigmas).unsqueeze(0)
-        #log_sigmas = self.elu(self.log_sigmas) + 1
-        distances = (x - c).pow(2).sum(-1).pow(0.5) / torch.exp(self.log_sigmas).unsqueeze(0)
-        phi = torch.exp(-1 * distances.pow(2))
-        wandb.log({"phi": phi.norm().item(), "sigmas": self.log_sigmas.norm().item()})
-        return phi
-
-
 class BertRegressor(nn.Module):
     def __init__(self, args):
         super(BertRegressor, self).__init__()
@@ -259,26 +222,28 @@ class CompositeModel(nn.Module):
         elif args.arch == 'char_lstm':
             self._encoder = CharLSTMModel(args)
             concat_dim = self._encoder._lstm.hidden_size * 2
-
-        self._reduce = nn.Linear(concat_dim, 100)
-        if args.reduce_layer:
-            if args.mdn:
-                self._head = MDN(100, 2, args.num_gaussians)
-            else:
-                self._head = nn.Linear(100, 2)
         else:
-            if args.mdn:
-                self._head = MDN(concat_dim, 2, args.num_gaussians)
-            else:
-                self._head = nn.Linear(concat_dim, 2)
+            logger.error('Invalid architecture choice')
+            return
+
+        reduce_dim = 100 if args.reduce_layer else concat_dim
+        self._reduce = nn.Linear(concat_dim, 100)
+
+        if args.mdn:
+            self._head = MDN(reduce_dim, 2, args.num_gaussians)
+        else:
+            self._head = nn.Linear(reduce_dim, 2)
 
     def forward(self, byte_tokens, word_tokens):
         if self.arch == 'bert' or self.arch == 'byt5':
-            text_encoding = self._encoder(byte_tokens, word_tokens)
+            text_encoding = F.dropout(self._encoder(byte_tokens, word_tokens),
+                                      p=self.args.dropout, training=self.training)
         else:
-            text_encoding = self._encoder(byte_tokens, word_tokens, features_only=True)
+            text_encoding = F.dropout(self._encoder(byte_tokens, word_tokens, features_only=True),
+                                      p=self.args.dropout, training=self.training)
+
         if self.reduce_layer:
-            return self._head(self._reduce(F.dropout(text_encoding, p=self.args.dropout)))
-        else:
-            return self._head(F.dropout(text_encoding, p=self.args.dropout))
+            text_encoding = self._reduce(text_encoding)
+
+        return self._head(text_encoding)
 
