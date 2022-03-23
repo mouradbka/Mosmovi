@@ -18,7 +18,8 @@ python runner.py --data_dir <data_path> --arch char_lstm --mdn --split_uids --su
 To run the models on test data with gold labels follow this example (for an MDN model):
 
 ```
-python predict.py --data_dir <data_path> --model_path <model_path> --arch char_lstm --mdn --batch_size 128
+python predict.py --data_dir <data_path> --model_path <model_path> --arch char_lstm --mdn --batch_size 1024
+--num_confidence_bins 5 --entropy_confidence
 ```
 
 ## Model confidence
