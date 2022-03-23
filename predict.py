@@ -41,8 +41,6 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     test_dataset = TweetDataset(data_dir=args.data_dir)
-    sample = torch.randperm(len(test_dataset))
-    test_dataset = Subset(test_dataset, sample[:5000])
 
     byte_tokenizer = ByT5Tokenizer.from_pretrained('google/byt5-small')
     word_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
