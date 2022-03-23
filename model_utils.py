@@ -31,7 +31,7 @@ def predict(pi, mu, sigma, method='pi', top_k=False):
     if method == 'mixture':
         pis = pi.repeat(1, 2).view(pi.shape[0], 2, pi.shape[1])
         if top_k:
-            indices = pis.topk(k=5, dim=-1).indices
+            indices = pis.topk(k=top_k, dim=-1).indices
             pis = torch.gather(pis, -1, indices)
             mus = torch.gather(mu, -1, indices)
 
