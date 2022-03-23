@@ -56,8 +56,6 @@ def main():
                         help="Use entropy to estimate confidence (default: max. probabilities)")
     parser.add_argument('--num_gaussians', type=int, default=10,
                         help="Number of Gaussian distributions used by the MDN")
-    parser.add_argument('--use_mixture', action='store_true', default=False,
-                        help="Use weighted Gaussian means for prediction (default: max. probability weight)")
     parser.add_argument('--confidence_validation_criterion', action='store_true', default=False,
                         help="Save models based on score of the highest confidence level (default: average over all validation points)")
 

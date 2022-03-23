@@ -33,9 +33,7 @@ def main():
     parser.add_argument('--data_dir', required=True, type=str, action='store')
     parser.add_argument('--generate', action='store_true')
     parser.add_argument('--mdn', action='store_true', default=False)
-    parser.add_argument('--top_k', action='store', type=int, default=0)
     parser.add_argument('--reduce_layer', action='store_true', default=False)
-    parser.add_argument('--use_mixture', action='store_true', default=False)
     parser.add_argument('--num_confidence_bins', type=int, default=5)
     parser.add_argument('--entropy_confidence', action='store_true', default=False)
 

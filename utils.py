@@ -153,11 +153,7 @@ def evaluate(batch, model, criterion, args, device, generate=False):
     # check if batch dim squeezed out during pred, fix
     if args.mdn:
         pi, mu, sigma = model(byte_tokens, word_tokens)
-        if args.use_mixture:
-            pred = predict(pi, mu, sigma, method='mixture', top_k=args.top_k)
-        else:
-            pred = predict(pi, mu, sigma, method='pi')
-
+        pred = predict(pi, mu, sigma)
         pred = pred.unsqueeze(0) if len(pred.size()) == 1 else pred
 
         # calculate confidence
