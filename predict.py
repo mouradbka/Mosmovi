@@ -38,12 +38,11 @@ def main():
     parser.add_argument('--entropy_confidence', action='store_true', default=False)
 
     args = parser.parse_args()
-    args.batch_size = 1 if args.generate else args.batch_size
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     test_dataset = TweetDataset(data_dir=args.data_dir)
-    # sample = torch.randperm(len(test_dataset))
-    # test_dataset = Subset(test_dataset, sample[:5000])
+    sample = torch.randperm(len(test_dataset))
+    test_dataset = Subset(test_dataset, sample[:5000])
 
     byte_tokenizer = ByT5Tokenizer.from_pretrained('google/byt5-small')
     word_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
@@ -88,8 +87,8 @@ def main():
             for confidence_level, corresp_test_distance_list in distances_confidence.items():
                 test_mean_c = np.nan_to_num(np.mean(corresp_test_distance_list))
                 test_median_c = np.nan_to_num(np.median(corresp_test_distance_list))
-                logger.info(f"conf: " + str(confidence_level) + " - " + f"val_mean: {test_mean_c}")
-                logger.info(f"conf: " + str(confidence_level) + " - " + f"val_median: {test_median_c}")
+                logger.info(f"conf: " + str(confidence_level) + " - " + f"test_mean: {test_mean_c}")
+                logger.info(f"conf: " + str(confidence_level) + " - " + f"test_median: {test_median_c}")
 
 
 if __name__ == '__main__':

@@ -32,17 +32,20 @@ The output should look something like:
 
 ```
 > test_mean: 1245.8035673871632, test_median: 520.50927734375
-> conf: 0 - val_mean: 1794.3510998091208
-> conf: 0 - val_median: 1105.5209350585938
-> conf: 1 - val_mean: 1398.6538583901156
-> conf: 1 - val_median: 905.3485107421875
-> conf: 2 - val_mean: 1142.7724703758329
-> conf: 2 - val_median: 377.4914245605469
-> conf: 3 - val_mean: 1108.8275716482829
-> conf: 3 - val_median: 274.7439270019531
-> conf: 4 - val_mean: 746.1342747807423
-> conf: 4 - val_median: 223.4276580810547
+> conf: 0 - test_mean: 1794.3510998091208
+> conf: 0 - test_median: 1105.5209350585938
+> conf: 1 - test_mean: 1398.6538583901156
+> conf: 1 - test_median: 905.3485107421875
+> conf: 2 - test_mean: 1142.7724703758329
+> conf: 2 - test_median: 377.4914245605469
+> conf: 3 - test_mean: 1108.8275716482829
+> conf: 3 - test_median: 274.7439270019531
+> conf: 4 - test_mean: 746.1342747807423
+> conf: 4 - test_median: 223.4276580810547
 ```
+
+Note that confidences are calculated at a batch level, for scalability -- 
+therefore, while evaluating, we recommend setting the batch size as high as possible, given memory constraints.
 
 ## Package requirements:
 ```
