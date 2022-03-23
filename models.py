@@ -29,8 +29,8 @@ class CharLSTMModel(nn.Module):
     def __init__(self, args):
         super(CharLSTMModel, self).__init__()
         self._token_embed = nn.Embedding(256, 150, 255)
-        self._lstm = nn.LSTM(150, 15, 2, bidirectional=True, batch_first=True)
-        self._ffn = nn.Linear(30, 2)
+        self._lstm = nn.LSTM(150, 150, 2, bidirectional=True, batch_first=True)
+        self._ffn = nn.Linear(300, 2)
 
     def forward(self, byte_tokens, word_tokens, features_only=False):
         input_ids = byte_tokens.input_ids
