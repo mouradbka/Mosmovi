@@ -154,7 +154,7 @@ def evaluate(batch, model, criterion, args, device, generate=False):
     if args.mdn:
         pi, mu, sigma = model(byte_tokens, word_tokens)
         if args.use_mixture:
-            pred = predict(pi, mu, sigma, method='mixture')
+            pred = predict(pi, mu, sigma, method='mixture', top_k=args.top_k)
         else:
             pred = predict(pi, mu, sigma, method='pi')
 
@@ -193,7 +193,8 @@ def evaluate(batch, model, criterion, args, device, generate=False):
     if generate:
         assert len(byte_tokens.input_ids) == len(pred) == 1
         # use lengths to avoid having strings shorter than 7 bytes
-        tweet = bytes(byte_tokens.input_ids[0, :-1] - 3).decode('utf-8')
+        # tweet = bytes(byte_tokens.input_ids[0, :-1] - 3).decode('utf-8')
+        tweet = bytes(byte_tokens.input_ids[(byte_tokens.input_ids - 3) > 0] - 3).decode('utf-8')
         lat, long = pred[0][0], pred[0][1]
         outstring = f"{tweet}\t({lat}, {long})"
         if args.mdn:

@@ -27,11 +27,17 @@ def sample(pi, mu, sigma):
     return sampled
 
 
-def predict(pi, mu, sigma, method='pi'):
+def predict(pi, mu, sigma, method='pi', top_k=False):
     if method == 'mixture':
         pis = pi.repeat(1, 2).view(pi.shape[0], 2, pi.shape[1])
+        if top_k:
+            indices = pis.topk(k=5, dim=-1).indices
+            pis = torch.gather(pis, -1, indices)
+            mus = torch.gather(mu, -1, indices)
+
         selected_mus = pis * mu
         return torch.sum(selected_mus, -1)
+
 
     elif method == 'pi':
         pis = torch.argmax(pi, axis=1)

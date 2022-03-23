@@ -29,19 +29,23 @@ def main():
                         choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn',
                                  'bert', 'byt5'])
     parser.add_argument('--dropout', type=float, default=0.3)
-    parser.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--data_dir', required=True, type=str, action='store')
     parser.add_argument('--generate', action='store_true')
     parser.add_argument('--mdn', action='store_true', default=False)
+    parser.add_argument('--top_k', action='store', default=0)
     parser.add_argument('--reduce_layer', action='store_true', default=False)
     parser.add_argument('--use_mixture', action='store_true', default=False)
     parser.add_argument('--num_confidence_bins', type=int, default=5)
     parser.add_argument('--entropy_confidence', action='store_true', default=False)
 
     args = parser.parse_args()
+    args.batch_size = 1 if args.generate else args.batch_size
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     test_dataset = TweetDataset(data_dir=args.data_dir)
+    sample = torch.randperm(len(test_dataset))
+    test_dataset = Subset(test_dataset, sample[:5000])
 
     byte_tokenizer = ByT5Tokenizer.from_pretrained('google/byt5-small')
     word_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
@@ -54,6 +58,7 @@ def main():
 
     criterion = state['criterion']
     model_arch = utils.get_arch(state['arch'])
+
     if args.mdn:
         args.num_gaussians = state['state_dict']['_head.pi_h.weight'].size(0)
 
