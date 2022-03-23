@@ -33,7 +33,7 @@ def predict(pi, mu, sigma, method='pi', top_k=False):
         if top_k:
             indices = pis.topk(k=top_k, dim=-1).indices
             pis = torch.gather(pis, -1, indices)
-            mus = torch.gather(mu, -1, indices)
+            mu = torch.gather(mu, -1, indices)
 
         selected_mus = pis * mu
         return torch.sum(selected_mus, -1)
