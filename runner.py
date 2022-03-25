@@ -82,8 +82,8 @@ def main():
     tokenizers = (byte_tokenizer, word_tokenizer)
 
     collate_fn = lambda instance: utils.pad_chars(instance, tokenizers, args.max_seq_len)
-    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=collate_fn)
-    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=collate_fn)
+    _train_iter = DataLoader(train_dataset, batch_size=int(args.batch_size), collate_fn=collate_fn, shuffle=True)
+    _val_iter = DataLoader(val_dataset, batch_size=int(args.batch_size), collate_fn=collate_fn, shuffle=True)
     train_iter = tqdm.tqdm(_train_iter)
     val_iter = tqdm.tqdm(_val_iter)
 

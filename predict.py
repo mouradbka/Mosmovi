@@ -36,6 +36,8 @@ def main():
     parser.add_argument('--reduce_layer', action='store_true', default=False)
     parser.add_argument('--num_confidence_bins', type=int, default=5)
     parser.add_argument('--entropy_confidence', action='store_true', default=False)
+    parser.add_argument('--shuffle', action='store_true', default=False,
+                        help="Shuffle data before passing to model")
 
     args = parser.parse_args()
 
@@ -47,7 +49,7 @@ def main():
     tokenizers = (byte_tokenizer, word_tokenizer)
 
     collate_fn = lambda instance: utils.pad_chars(instance, tokenizers, -1)
-    test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=args.batch_size, collate_fn=collate_fn))
+    test_iter = tqdm.tqdm(DataLoader(test_dataset, batch_size=args.batch_size, collate_fn=collate_fn, shuffle=args.shuffle))
 
     state = torch.load(args.model_path, map_location=device)
 
