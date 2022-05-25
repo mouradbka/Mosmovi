@@ -19,7 +19,7 @@ logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 def main():
     parser = ArgumentParser()
     # script
-    parser.add_argument('--data_dir', default='./data_tiny', action='store')
+    parser.add_argument('--data_dir', default='./data-small', action='store')
     parser.add_argument('--arch', default='char_pool',
                         choices=['char_pool', 'char_lstm', 'char_cnn', 'char_lstm_cnn',
                                  'bert', 'byt5'])
